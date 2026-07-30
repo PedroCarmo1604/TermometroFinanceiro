@@ -1,0 +1,2524 @@
+<title>Termômetro Financeiro</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A1</text></svg>">
+<style>
+  :root{
+    --bg:#0F1B2D;
+    --surface:#16243A;
+    --surface-2:#1D2E47;
+    --line:#2A3B57;
+    --text:#E8ECF1;
+    --muted:#8B98AC;
+    --cold:#2DD4BF;
+    --warm:#F97316;
+    --hot:#EF4444;
+    --mid:#F59E0B;
+    --good:#34D399;
+  }
+  :root[data-tf-theme="light"]{
+    --bg:#F4F6FA;
+    --surface:#FFFFFF;
+    --surface-2:#EAEFF6;
+    --line:#D8E0EA;
+    --text:#1A2233;
+    --muted:#6B7686;
+    --cold:#0D9488;
+    --warm:#EA580C;
+    --hot:#DC2626;
+    --mid:#D97706;
+    --good:#059669;
+  }
+  *{box-sizing:border-box;}
+  #tf-app{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', Arial, sans-serif;
+    padding:28px clamp(16px, 4vw, 56px) 36px;
+    border-radius:14px;
+    max-width:1800px;
+    width:100%;
+    margin:0 auto;
+  }
+  @media (max-width: 640px){
+    #tf-app{ padding:16px 12px 24px; border-radius:0; }
+    .tf-title{ font-size:21px; }
+  }
+  .tf-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .tf-theme-switch{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    flex-shrink:0;
+  }
+  .tf-theme-switch button{
+    width:42px;
+    height:24px;
+    border-radius:14px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    position:relative;
+    cursor:pointer;
+    padding:0;
+    flex-shrink:0;
+  }
+  .tf-theme-switch button::after{
+    content:'';
+    position:absolute;
+    top:2px;
+    left:2px;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:var(--cold);
+    transition:transform .2s ease;
+  }
+  .tf-theme-switch button.is-light::after{
+    transform:translateX(18px);
+    background:var(--warm);
+  }
+  .tf-theme-switch-icon{
+    font-size:13px;
+    line-height:1;
+    color:var(--muted);
+  }
+  .tf-title{
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:-0.01em;
+  }
+  .tf-sub{
+    color:var(--muted);
+    font-size:12.5px;
+    margin-top:2px;
+  }
+  .tf-nav{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:18px 0 20px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:8px 10px;
+  }
+  .tf-nav button{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    width:30px;height:30px;
+    border-radius:7px;
+    cursor:pointer;
+    font-size:15px;
+    line-height:1;
+  }
+  .tf-nav button:hover{ background:#26395A; }
+  .tf-nav button.tf-month-label{
+    flex:1;
+    width:auto;
+    height:auto;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-family:inherit;
+    padding:4px 0;
+    text-align:center;
+    font-weight:600;
+    font-size:14.5px;
+    text-transform:capitalize;
+  }
+  .tf-nav button.tf-month-label:hover{ background:none; color:var(--cold); }
+  .tf-month-picker{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:7px;
+    padding:5px 8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    text-align:center;
+  }
+  .tf-nav button.tf-reset{
+    width:auto;
+    height:auto;
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:11.5px;
+    padding:5px 10px;
+  }
+  .tf-nav button.tf-reset:hover{ background:none; color:var(--hot); border-color:var(--hot); }
+  .tf-main{
+    display:flex;
+    gap:18px;
+    align-items:flex-start;
+  }
+  .tf-gauge-col{
+    width:78px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    position:sticky;
+    top:0;
+  }
+  .tf-gauge{
+    width:30px;
+    height:230px;
+    border-radius:16px;
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(to top, var(--hot) 0%, var(--warm) 28%, var(--mid) 55%, var(--cold) 100%);
+    border:1px solid var(--line);
+  }
+  .tf-gauge-mask{
+    position:absolute;
+    top:0; left:0; right:0;
+    background:var(--surface);
+    opacity:0.93;
+    transition:height .4s ease;
+  }
+  .tf-gauge-bulb{
+    width:46px;height:46px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    margin-top:-2px;
+  }
+  .tf-gauge-label{
+    font-size:11px;
+    color:var(--muted);
+    text-align:center;
+    line-height:1.3;
+  }
+  .tf-gauge-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    font-weight:600;
+    text-align:center;
+  }
+  .tf-body{ flex:1; min-width:0; }
+  .tf-opening{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  .tf-opening input{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:6px;
+    padding:4px 8px;
+    width:110px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+  }
+  .tf-opening{ flex-wrap:wrap; }
+  .tf-opening-auto{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--text);
+    font-weight:600;
+  }
+  .tf-opening-auto-note{
+    font-size:10.5px;
+    color:var(--muted);
+    font-style:italic;
+  }
+  .tf-hint{
+    font-size:11px;
+    color:var(--muted);
+    margin:-2px 0 12px;
+  }
+  .tf-hint strong{
+    color:var(--cold);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+  }
+  .tf-tabs{
+    display:flex;
+    gap:6px;
+    margin:14px 0 18px;
+  }
+  .tf-tabs button{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:7px 14px;
+    border-radius:8px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .tf-tabs button.active{
+    background:var(--surface-2);
+    color:var(--text);
+    border-color:var(--cold);
+  }
+  .tf-inv-summary{
+    display:flex;
+    gap:10px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .tf-cards{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .tf-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:14px 16px;
+  }
+  .tf-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .tf-card-ticker{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:15px;
+  }
+  .tf-badge{
+    font-size:10px;
+    color:var(--muted);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:1px 7px;
+    margin-left:8px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .tf-card-rent{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:14px;
+  }
+  .tf-card-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .tf-card-field{ min-width:0; }
+  .tf-card-field-label{
+    font-size:9.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .tf-card-field-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    margin-top:2px;
+  }
+  .tf-card-field input{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:6px;
+    padding:3px 6px;
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    margin-top:2px;
+  }
+  .tf-card-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .tf-card-actions button{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:7px;
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:11.5px;
+  }
+  .tf-card-actions button:hover{ color:var(--cold); border-color:var(--cold); }
+  .tf-tx-form{
+    margin-top:10px;
+    padding:10px;
+    background:var(--surface-2);
+    border-radius:8px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+  .tf-tx-form select, .tf-tx-form input{
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:6px;
+    padding:5px 8px;
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .tf-tx-form label{
+    font-size:10px;
+    color:var(--muted);
+    display:block;
+    margin-bottom:3px;
+    text-transform:uppercase;
+  }
+  .tf-tx-form button.confirm{
+    background:var(--cold);
+    color:#06231F;
+    border:none;
+    font-weight:700;
+  }
+  .tf-history{
+    margin-top:10px;
+    font-size:11.5px;
+  }
+  .tf-history-row{
+    display:flex;
+    justify-content:space-between;
+    color:var(--muted);
+    padding:3px 0;
+    border-bottom:1px solid #1C2C45;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .tf-history-empty{
+    color:var(--muted);
+    font-size:11.5px;
+    font-style:italic;
+  }
+  .tf-reserve-card{
+    background:var(--surface);
+    border:1px solid var(--cold);
+    border-radius:11px;
+    padding:14px 16px;
+    margin-bottom:14px;
+  }
+  .tf-reserve-bars{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+  }
+  .tf-reserve-bar{
+    flex:1;
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:8px 10px;
+  }
+  .tf-reserve-bar-label{
+    font-size:10px;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .tf-reserve-bar-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    font-weight:700;
+    margin-top:2px;
+  }
+  .tf-reserve-note{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:8px;
+  }
+  #tf-toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(80px);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 18px;
+    font-size:12.5px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.4);
+    transition:transform .25s ease, opacity .25s ease;
+    opacity:0;
+    pointer-events:none;
+    z-index:9999;
+    white-space:nowrap;
+  }
+  #tf-toast.visible{
+    transform:translateX(-50%) translateY(0);
+    opacity:1;
+  }
+  #tf-toast.toast-ok{ border-color:var(--good); color:var(--good); }
+  #tf-toast.toast-err{ border-color:var(--hot); color:var(--hot); }
+  .tf-dash-section{ margin-bottom:20px; }
+  .tf-dash-section-title{
+    font-family:'Fraunces', Georgia, serif;
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:10px;
+  }
+  .tf-dash-hero{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .tf-dash-hero-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:28px;
+    font-weight:700;
+  }
+  .tf-dash-hero-label{
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:2px;
+  }
+  .tf-dash-hero-breakdown{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    font-size:11.5px;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .tf-dash-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-bottom:18px;
+  }
+  @media (max-width: 620px){ .tf-dash-grid{ grid-template-columns:1fr; } }
+  .tf-chart-box{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 16px;
+  }
+  .tf-chart-title{
+    font-size:11.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    margin-bottom:8px;
+  }
+  .tf-legend{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-top:10px;
+    font-size:11.5px;
+  }
+  .tf-legend-row{
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .tf-legend-dot{
+    width:9px;height:9px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .tf-legend-label{ flex:1; color:var(--muted); }
+  .tf-legend-value{ font-family:'IBM Plex Mono', monospace; color:var(--text); }
+  .tf-indicators{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:10px;
+  }
+  .tf-indicator{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+  }
+  .tf-indicator-label{
+    font-size:10.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    margin-bottom:4px;
+  }
+  .tf-indicator-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:17px;
+    font-weight:700;
+  }
+  .tf-chart-note{
+    font-size:10.5px;
+    color:var(--muted);
+    margin-top:8px;
+    font-style:italic;
+  }
+  table.tf-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.8px;
+  }
+  .tf-table th{
+    text-align:right;
+    color:var(--muted);
+    font-weight:500;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:6px 6px;
+    border-bottom:1px solid var(--line);
+  }
+  .tf-table th:first-child, .tf-table td:first-child{ text-align:left; }
+  .tf-table td{
+    padding:3px 4px;
+    border-bottom:1px solid #1C2C45;
+    position:relative;
+  }
+  .tf-table tr.tf-today td{ background:rgba(45,212,191,0.06); }
+  .tf-day{
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    width:26px;
+  }
+  .tf-table input{
+    width:100%;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    padding:4px 2px;
+    border-radius:5px;
+  }
+  .tf-table input:focus{
+    outline:none;
+    background:var(--surface-2);
+  }
+  .tf-table input.tf-saldo{
+    color:var(--muted);
+    font-weight:600;
+  }
+  /* Indicador de nota: pontinho colorido no canto superior direito da célula */
+  .tf-has-note::after{
+    content:'';
+    position:absolute;
+    top:3px;
+    right:3px;
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:var(--cold);
+    pointer-events:none;
+  }
+  /* Pista sutil de que dá pra adicionar nota — só aparece no hover, em células que ainda não têm uma */
+  .tf-notable:not(.tf-has-note)::after{
+    content:'📝';
+    position:absolute;
+    top:1px;
+    right:2px;
+    font-size:8px;
+    line-height:1;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s;
+  }
+  .tf-notable:not(.tf-has-note):hover::after{
+    opacity:.5;
+  }
+  /* Tooltip da nota */
+  .tf-tooltip{
+    position:absolute;
+    bottom:calc(100% + 6px);
+    right:0;
+    background:var(--surface-2);
+    border:1px solid var(--cold);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:11.5px;
+    color:var(--text);
+    white-space:pre-wrap;
+    max-width:220px;
+    z-index:1000;
+    pointer-events:none;
+    box-shadow:0 4px 16px rgba(0,0,0,0.35);
+    opacity:0;
+    transition:opacity .15s;
+  }
+  .tf-has-note:hover .tf-tooltip,
+  .tf-has-note:focus-within .tf-tooltip{ opacity:1; }
+  /* Menu de contexto customizado */
+  #tf-ctx-menu{
+    position:fixed;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:4px 0;
+    z-index:9999;
+    box-shadow:0 6px 24px rgba(0,0,0,0.45);
+    min-width:170px;
+    display:none;
+  }
+  #tf-ctx-menu button{
+    display:block;
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--text);
+    text-align:left;
+    padding:8px 14px;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  #tf-ctx-menu button:hover{ background:var(--surface); }
+  #tf-ctx-menu hr{ border:none; border-top:1px solid var(--line); margin:3px 0; }
+  /* Modal de edição de nota */
+  #tf-note-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    z-index:10000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+  }
+  #tf-note-modal.open{ display:flex; }
+  .tf-note-modal-box{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    width:300px;
+    max-width:90vw;
+  }
+  .tf-note-modal-box label{
+    display:block;
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .tf-note-modal-box textarea{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:13px;
+    font-family:'IBM Plex Sans', Arial, sans-serif;
+    resize:vertical;
+    min-height:80px;
+    margin-bottom:12px;
+  }
+  .tf-note-modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .tf-note-modal-actions button{
+    border-radius:7px;
+    padding:6px 14px;
+    font-size:12.5px;
+    cursor:pointer;
+    border:1px solid var(--line);
+  }
+  .tf-note-modal-actions .save{ background:var(--cold); color:#06231F; border-color:var(--cold); font-weight:700; }
+  .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
+  .tf-foot-row td{
+    font-weight:600;
+    border-top:1px solid var(--line);
+    border-bottom:none;
+    padding-top:10px;
+  }
+  .tf-summary{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  .tf-pill{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:10px 14px;
+    flex:1;
+    min-width:120px;
+  }
+  .tf-pill-label{
+    font-size:10.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .tf-pill-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:15px;
+    font-weight:600;
+    margin-top:3px;
+  }
+  .tf-footer-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:18px;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .tf-reset{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:7px;
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:11.5px;
+  }
+  .tf-reset:hover{ color:var(--hot); border-color:var(--hot); }
+  .tf-confirm{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .tf-confirm button{
+    border-radius:7px;
+    padding:5px 10px;
+    font-size:11.5px;
+    cursor:pointer;
+    border:1px solid var(--line);
+  }
+  .tf-confirm .yes{ background:var(--hot); color:#fff; border-color:var(--hot); }
+  .tf-confirm .no{ background:none; color:var(--muted); }
+  .tf-loading, .tf-error{
+    text-align:center;
+    color:var(--muted);
+    padding:40px 0;
+    font-size:13px;
+  }
+  .tf-error{ color:var(--hot); }
+  @font-face{ font-family:'Fraunces'; src:local('Georgia'); }
+
+  .tf-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+  @media (max-width: 640px){
+    .tf-main{ flex-direction:column; }
+    .tf-gauge-col{
+      width:100%;
+      flex-direction:row;
+      justify-content:flex-start;
+      position:static;
+      gap:12px;
+    }
+    .tf-gauge{ width:14px; height:52px; }
+    .tf-gauge-value, .tf-gauge-label{ text-align:left; }
+    table.tf-table{ min-width:520px; }
+    .tf-card-grid{ grid-template-columns:repeat(2, 1fr); }
+    .tf-indicators{ grid-template-columns:1fr; }
+    .tf-reserve-bars{ flex-direction:column; }
+  }
+</style>
+
+<div id="tf-toast"></div>
+<div id="tf-ctx-menu">
+  <button id="tf-ctx-add-note">📝 Adicionar / editar nota</button>
+  <hr>
+  <button id="tf-ctx-remove-note" style="color:var(--hot)">🗑 Remover nota</button>
+</div>
+<div id="tf-note-modal">
+  <div class="tf-note-modal-box">
+    <label>Nota para este campo</label>
+    <textarea id="tf-note-textarea" placeholder="Ex: salário + bônus, parcela do cartão..."></textarea>
+    <div class="tf-note-modal-actions">
+      <button class="cancel" id="tf-note-cancel">Cancelar</button>
+      <button class="save" id="tf-note-save">Salvar nota</button>
+    </div>
+  </div>
+</div>
+<div id="tf-app"><div class="tf-loading">Carregando seus lançamentos...</div></div>
+
+<script>
+(function(){
+  // Fallback: fora do host que injeta window.storage (extensão/app), usa localStorage
+  // pra persistir mesmo assim — sem isso, todo saveData()/saveInvestments() falha silenciosamente.
+  if (!window.storage){
+    window.storage = {
+      async get(key){
+        return { value: localStorage.getItem('tf-storage:' + key) };
+      },
+      async set(key, value){
+        localStorage.setItem('tf-storage:' + key, value);
+      }
+    };
+  }
+
+  // ---- Expressões e Notas ----
+  function cellKey(y,m,d,field){ return `${y}-${m}-${d}-${field}`; }
+
+  function setExpr(mo, d, field, expr){
+    if (!mo.days[d]) mo.days[d] = { entrada:0, saida:0, diario:0 };
+    if (!mo.days[d].exprs) mo.days[d].exprs = {};
+    if (expr) mo.days[d].exprs[field] = expr;
+    else delete mo.days[d].exprs[field];
+  }
+  function getExpr(mo, d, field){
+    return mo.days[d] && mo.days[d].exprs && mo.days[d].exprs[field] || '';
+  }
+
+  function setNote(y,m,d,field,text){
+    const mo = getMonth(y,m,true);
+    if (!mo.days[d]) mo.days[d] = { entrada:0, saida:0, diario:0 };
+    if (!mo.days[d].notes) mo.days[d].notes = {};
+    if (text && text.trim()) mo.days[d].notes[field] = text.trim();
+    else delete mo.days[d].notes[field];
+    saveData();
+    render();
+  }
+
+  function getNote(mo, d, field){
+    return mo.days[d] && mo.days[d].notes && mo.days[d].notes[field] || '';
+  }
+
+  // Menu de contexto
+  let _ctxTarget = null; // { y,m,d,field }
+  const _ctxMenu = document.getElementById('tf-ctx-menu');
+
+  function showCtxMenu(x, y, target){
+    _ctxTarget = target;
+    _ctxMenu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
+    _ctxMenu.style.top = Math.min(y, window.innerHeight - 100) + 'px';
+    _ctxMenu.style.display = 'block';
+  }
+  function hideCtxMenu(){ _ctxMenu.style.display = 'none'; _ctxTarget = null; }
+
+  document.addEventListener('click', () => hideCtxMenu());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); } });
+
+  document.getElementById('tf-ctx-add-note').onclick = (e) => {
+    e.stopPropagation();
+    const target = _ctxTarget;
+    hideCtxMenu();
+    if (!target) return;
+    openNoteModal(target);
+  };
+  document.getElementById('tf-ctx-remove-note').onclick = (e) => {
+    e.stopPropagation();
+    const target = _ctxTarget;
+    hideCtxMenu();
+    if (!target) return;
+    const { y, m, d, field } = target;
+    setNote(y, m, d, field, '');
+  };
+
+  // Modal de nota
+  function openNoteModal(target){
+    const { y, m, d, field } = target;
+    const mo = getMonth(y,m,false) || { days:{} };
+    const existing = getNote(mo, d, field);
+    document.getElementById('tf-note-textarea').value = existing;
+    const modal = document.getElementById('tf-note-modal');
+    modal.classList.add('open');
+    modal.dataset.y = y; modal.dataset.m = m; modal.dataset.d = d; modal.dataset.field = field;
+    setTimeout(() => document.getElementById('tf-note-textarea').focus(), 50);
+  }
+  function closeNoteModal(){
+    document.getElementById('tf-note-modal').classList.remove('open');
+  }
+  document.getElementById('tf-note-cancel').onclick = closeNoteModal;
+  document.getElementById('tf-note-save').onclick = () => {
+    const modal = document.getElementById('tf-note-modal');
+    const { y, m, d, field } = modal.dataset;
+    const text = document.getElementById('tf-note-textarea').value;
+    setNote(+y, +m, +d, field, text);
+    closeNoteModal();
+  };
+  document.getElementById('tf-note-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('tf-note-modal')) closeNoteModal();
+  });
+
+  const STORAGE_KEY = 'months-data';
+  const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  let _toastTimer = null;
+  function showToast(msg, type = 'ok'){
+    const el = document.getElementById('tf-toast');
+    if (!el) return;
+    el.textContent = type === 'ok' ? '✓ ' + msg : '⚠ ' + msg;
+    el.className = 'visible ' + (type === 'ok' ? 'toast-ok' : 'toast-err');
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.className = ''; }, type === 'ok' ? 2000 : 4000);
+  }
+
+  // Preenche apenas meses que ainda não existem no storage — nunca sobrescreve edição já salva.
+  // Vazio por padrão: cada instalação começa do zero e usa "Importar backup" para trazer histórico.
+  const SEED_DATA = {};
+
+  const MIN_YEAR = 2024; // setembro/2024: quando o controle financeiro real começou
+  const MIN_MONTH = 8; // 0-indexado: agosto=7, setembro=8
+
+  let state = { months: {}, loaded: false, error: null };
+  let activeTab = 'diario';
+  const TAB_LABELS = { diario: 'Diário', investimentos: 'Investimentos', dashboard: 'Dashboard' };
+
+  const INV_STORAGE_KEY = 'investments-data';
+  // Vazio por padrão: sem posições pré-carregadas, apenas os defaults genéricos da reserva.
+  const SEED_INVESTMENTS = {
+    assets: {},
+    reserve: { turboValue: 0, normalValue: 0, turboCap: 5000, turboRate: 1.15, normalRate: 1.00, yieldLog: [] }
+  };
+  const KIND_ORDER = { 'FII': 0, 'Ação': 1, 'ETF': 2, 'Cripto': 3, 'Renda Fixa': 4, 'Outro': 5 };
+  let invState = { assets: {}, reserve: {}, loaded: false };
+  let invOpenForm = null; // ticker do form de aporte/venda aberto, ou null
+  let invHistoryOpen = {}; // { TICKER: true/false }
+  let invProvFormOpen = {}; // { TICKER: true/false } form de lançamento de provento
+  let invProvHistOpen = {}; // { TICKER: true/false } histórico de proventos
+  let reserveFormOpen = false; // form de novo rendimento mensal
+  let newAssetFormOpen = false; // form de novo ativo
+  let invEditingTx = null; // { ticker, id } da transação em edição, ou null
+  let invEditingProv = null; // { ticker, id } do provento em edição, ou null
+  let invConfirmingReset = null; // ticker do card com reset de histórico pendente de confirmação
+  let invConfirmingRemoveAsset = null; // ticker do card pendente de confirmação de remoção completa
+  let invConfirmingDeleteTx = null; // { ticker, id } de transação pendente de confirmação de exclusão
+  let invConfirmingDeleteProv = null; // { ticker, id } de provento pendente de confirmação de exclusão
+
+  // Recalcula qty/PM SEMPRE a partir de baseQty/basePM + histórico (ordenado por data) —
+  // assim, editar ou excluir uma transação antiga recalcula tudo certinho, sem precisar de reset.
+  function recomputePosition(asset){
+    const sorted = [...asset.history].sort((x,y) => x.date < y.date ? -1 : (x.date > y.date ? 1 : 0));
+    let qty = asset.baseQty || 0, pm = asset.basePM || 0;
+    for (const tx of sorted){
+      if (tx.type === 'compra'){
+        const newQty = qty + tx.qty;
+        pm = newQty > 0 ? Math.round(((qty*pm) + (tx.qty*tx.price)) / newQty * 100) / 100 : tx.price;
+        qty = newQty;
+      } else {
+        qty = Math.max(0, Math.round((qty - tx.qty)*1e6)/1e6);
+      }
+    }
+    return { qty, pm };
+  }
+
+  // Quantidade do ativo numa data específica (YYYY-MM-DD) — usa só transações até aquela data.
+  // Usado pra reconstruir a evolução do patrimônio investido ao longo do tempo.
+  function qtyAsOf(asset, dateStr){
+    const sorted = [...asset.history].filter(tx => tx.date <= dateStr).sort((x,y) => x.date < y.date ? -1 : 1);
+    let qty = asset.baseQty || 0;
+    for (const tx of sorted){
+      qty = tx.type === 'compra' ? qty + tx.qty : Math.max(0, qty - tx.qty);
+    }
+    return qty;
+  }
+
+  const today = new Date();
+  function clampToMin(y,m){
+    if (y < MIN_YEAR || (y === MIN_YEAR && m < MIN_MONTH)) return { year: MIN_YEAR, month: MIN_MONTH };
+    return { year:y, month:m };
+  }
+  let view = clampToMin(today.getFullYear(), today.getMonth());
+  let confirmingReset = false;
+  let monthPickerOpen = false; // se o seletor direto de mês/ano está aberto no lugar do rótulo
+
+  function isAtMin(y,m){ return y === MIN_YEAR && m === MIN_MONTH; }
+
+  function tabBarHtml(){
+    return `<div class="tf-tabs">
+      <button id="tf-tab-diario" class="${activeTab==='diario'?'active':''}">Diário</button>
+      <button id="tf-tab-inv" class="${activeTab==='investimentos'?'active':''}">Investimentos</button>
+      <button id="tf-tab-dash" class="${activeTab==='dashboard'?'active':''}">Dashboard</button>
+    </div>`;
+  }
+  function wireTabs(){
+    document.getElementById('tf-tab-diario').onclick = () => { activeTab='diario'; render(); };
+    document.getElementById('tf-tab-inv').onclick = () => { activeTab='investimentos'; render(); };
+    document.getElementById('tf-tab-dash').onclick = () => { activeTab='dashboard'; render(); };
+    wireThemeSwitch();
+  }
+
+  // ---- Tema claro/escuro ----
+  const THEME_STORAGE_KEY = 'ui-theme';
+  let currentTheme = 'dark';
+
+  function applyTheme(theme){
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-tf-theme', theme);
+  }
+
+  async function loadTheme(){
+    try{
+      const res = await window.storage.get(THEME_STORAGE_KEY, false);
+      applyTheme(res && res.value === 'light' ? 'light' : 'dark');
+    } catch(e){
+      applyTheme('dark');
+    }
+    if (state.loaded || invState.loaded) render();
+  }
+
+  async function toggleTheme(){
+    const next = currentTheme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    render();
+    try{ await window.storage.set(THEME_STORAGE_KEY, next, false); }
+    catch(e){ console.error('Falha ao salvar tema', e); }
+  }
+
+  function themeSwitchHtml(){
+    const isLight = currentTheme === 'light';
+    return `<div class="tf-theme-switch">
+      <span class="tf-theme-switch-icon">🌙</span>
+      <button id="tf-theme-toggle" class="${isLight ? 'is-light' : ''}" aria-label="Alternar tema claro/escuro"></button>
+      <span class="tf-theme-switch-icon">☀️</span>
+    </div>`;
+  }
+  function wireThemeSwitch(){
+    const btn = document.getElementById('tf-theme-toggle');
+    if (btn) btn.onclick = toggleTheme;
+  }
+
+  function fmtBRL(v){
+    if (isNaN(v)) v = 0;
+    return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+  function monthKey(y,m){ return y + '-' + String(m+1).padStart(2,'0'); }
+  function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+  function prevMonthKey(y,m){ return m===0 ? monthKey(y-1,11) : monthKey(y,m-1); }
+  function prevYM(y,m){ return m===0 ? {y:y-1, m:11} : {y, m:m-1}; }
+
+  function emptyMonth(opening){
+    return { openingBalance: opening || 0, days: {} };
+  }
+  function dayEntry(monthObj, d){
+    return monthObj.days[d] || { entrada:0, saida:0, diario:0 };
+  }
+
+  // Saldo de abertura é sempre calculado a partir do saldo final do mês anterior,
+  // encadeado automaticamente até a âncora (set/2024) — nunca precisa ser digitado de novo.
+  function getOpeningBalance(y, m){
+    if (y === MIN_YEAR && m === MIN_MONTH){
+      const key = monthKey(y, m);
+      return (state.months[key] && state.months[key].openingBalance) || 0;
+    }
+    const { y: py, m: pm } = prevYM(y, m);
+    const prevOpening = getOpeningBalance(py, pm);
+    const prevKey = monthKey(py, pm);
+    const prevMonthObj = state.months[prevKey] || { days: {} };
+    return computeSaldoForDay(prevMonthObj, daysInMonth(py, pm), prevOpening);
+  }
+
+  function getMonth(y,m, createIfMissing){
+    const key = monthKey(y,m);
+    if (state.months[key]) return state.months[key];
+    if (!createIfMissing) return null;
+    state.months[key] = emptyMonth(0);
+    return state.months[key];
+  }
+
+  function computeSaldoForDay(monthObj, d, opening){
+    let s = opening || 0;
+    for(let i=1;i<=d;i++){
+      const e = dayEntry(monthObj,i);
+      s += (e.entrada||0) - (e.saida||0) - (e.diario||0);
+    }
+    return s;
+  }
+
+  async function loadData(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      state.months = res && res.value ? JSON.parse(res.value) : {};
+      state.loaded = true;
+    } catch(e){
+      console.error('Falha ao carregar lançamentos', e);
+      state.error = 'Não foi possível carregar seus lançamentos. Seus dados salvos não foram apagados — se isso persistir, restaure a partir de um backup exportado.';
+      state.loaded = true;
+      render();
+      return;
+    }
+    let merged = false;
+    for (const key in SEED_DATA){
+      if (!state.months[key]){
+        state.months[key] = JSON.parse(JSON.stringify(SEED_DATA[key]));
+        merged = true;
+      }
+    }
+    if (merged) await saveData(true);
+    render();
+  }
+
+  async function saveData(silent = false){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(state.months), false);
+      if (!silent) showToast('Lançamento salvo');
+    } catch(e){
+      console.error('Falha ao salvar', e);
+      showToast('Falha ao salvar — verifique se a extensão/app está atualizado', 'err');
+    }
+  }
+
+  function evalSum(raw){
+    if (!raw) return 0;
+    const str = String(raw).trim();
+    if (!str) return 0;
+    const tokens = str.match(/[+-]?[^+-]+/g);
+    if (!tokens) return 0;
+    let total = 0;
+    for (let tok of tokens){
+      tok = tok.trim();
+      if (!tok) continue;
+      let sign = 1;
+      if (tok[0] === '-'){ sign = -1; tok = tok.slice(1); }
+      else if (tok[0] === '+'){ tok = tok.slice(1); }
+      tok = tok.trim().replace(',', '.');
+      if (!tok) continue;
+      const v = parseFloat(tok);
+      if (!isNaN(v)) total += sign * v;
+    }
+    return Math.round(total * 100) / 100;
+  }
+
+  function setEntry(y,m,d,field,rawValue){
+    const mo = getMonth(y,m,true);
+    if (!mo.days[d]) mo.days[d] = { entrada:0, saida:0, diario:0 };
+    const computed = evalSum(rawValue);
+    mo.days[d][field] = computed;
+    // Preserva a expressão bruta se tiver operadores; limpa se for um número simples
+    const hasOp = /[+\-]/.test(String(rawValue).replace(/^\s*-?\s*/, '').trim());
+    setExpr(mo, d, field, (hasOp && rawValue.trim()) ? rawValue.trim() : '');
+    saveData();
+    render();
+  }
+
+  function setOpening(y,m,value){
+    const mo = getMonth(y,m,true);
+    mo.openingBalance = evalSum(value);
+    saveData();
+    render();
+  }
+
+  // ---- Investimentos ----
+  async function loadInvestments(){
+    try{
+      const res = await window.storage.get(INV_STORAGE_KEY, false);
+      invState = res && res.value ? JSON.parse(res.value) : { assets:{}, reserve:{} };
+    } catch(e){
+      console.error('Falha ao carregar investimentos', e);
+      invState = { assets:{}, reserve:{}, loaded: true, error: 'Não foi possível carregar seus investimentos. Seus dados salvos não foram apagados — se isso persistir, restaure a partir de um backup exportado.' };
+      render();
+      return;
+    }
+    if (!invState.assets) invState.assets = {};
+    if (!invState.reserve) invState.reserve = {};
+    let merged = false;
+    for (const ticker in SEED_INVESTMENTS.assets){
+      if (!invState.assets[ticker]){
+        invState.assets[ticker] = JSON.parse(JSON.stringify(SEED_INVESTMENTS.assets[ticker]));
+        merged = true;
+      }
+    }
+    // Migração: dados salvos antes da refatoração tinham qty/pm direto, sem base.
+    for (const ticker in invState.assets){
+      const a = invState.assets[ticker];
+      if (a.baseQty === undefined){
+        a.baseQty = a.qty || 0;
+        a.basePM = a.pm || 0;
+        delete a.qty;
+        delete a.pm;
+        merged = true;
+      }
+      if (!Array.isArray(a.history)) a.history = [];
+      a.history.forEach(tx => { if (!tx.id) { tx.id = 'tx_' + Math.random().toString(36).slice(2) + Date.now(); merged = true; } });
+      if (!Array.isArray(a.proventos)) { a.proventos = []; merged = true; }
+      a.proventos.forEach(p => { if (!p.id) { p.id = 'pv_' + Math.random().toString(36).slice(2) + Date.now(); merged = true; } });
+    }
+    if (Object.keys(invState.reserve).length === 0){
+      invState.reserve = JSON.parse(JSON.stringify(SEED_INVESTMENTS.reserve));
+      merged = true;
+    }
+    if (!Array.isArray(invState.reserve.yieldLog)){
+      invState.reserve.yieldLog = [];
+      merged = true;
+    }
+    // Migração: reserva antiga guardava um único "value" e dividia automaticamente pelo limite da turbo.
+    // Agora turbo e normal são caixinhas independentes editadas pelo usuário — preserva o total na divisão de migração.
+    if (invState.reserve.turboValue === undefined){
+      const oldValue = invState.reserve.value || 0;
+      invState.reserve.turboValue = Math.min(oldValue, invState.reserve.turboCap);
+      invState.reserve.normalValue = Math.max(oldValue - invState.reserve.turboCap, 0);
+      delete invState.reserve.value;
+      merged = true;
+    }
+    invState.loaded = true;
+    if (merged) await saveInvestments(true);
+    render();
+  }
+
+  async function saveInvestments(silent = false){
+    try{
+      const toSave = { assets: invState.assets, reserve: invState.reserve };
+      await window.storage.set(INV_STORAGE_KEY, JSON.stringify(toSave), false);
+      if (!silent) showToast('Investimentos salvos');
+    } catch(e){
+      console.error('Falha ao salvar investimentos', e);
+      showToast('Falha ao salvar investimentos — verifique se a extensão/app está atualizado', 'err');
+    }
+  }
+
+  function todayISO(){
+    return today.toISOString().slice(0,10);
+  }
+
+  // ---- Backup (exportar/importar tudo o que está salvo) ----
+  function exportBackup(){
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      months: state.months,
+      investments: { assets: invState.assets, reserve: invState.reserve }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `termometro-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Backup exportado');
+  }
+
+  async function importBackup(file){
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.months && !data.investments) throw new Error('formato inválido');
+      if (data.months) state.months = data.months;
+      if (data.investments){
+        invState.assets = data.investments.assets || {};
+        invState.reserve = data.investments.reserve || {};
+      }
+      await saveData(true);
+      await saveInvestments(true);
+      showToast('Backup importado');
+      render();
+    } catch(e){
+      console.error('Falha ao importar backup', e);
+      showToast('Arquivo de backup inválido', 'err');
+    }
+  }
+
+  function recordTransaction(ticker, type, qtyRaw, priceRaw){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    const qty = evalSum(qtyRaw);
+    const price = evalSum(priceRaw);
+    if (!qty || qty <= 0 || !price || price <= 0) return;
+    a.history.unshift({ id: 'tx_' + Math.random().toString(36).slice(2) + Date.now(), date: todayISO(), type, qty, price });
+    invOpenForm = null;
+    saveInvestments();
+    render();
+  }
+
+  function startEditTx(ticker, id){
+    invEditingTx = { ticker, id };
+    invOpenForm = null;
+    render();
+  }
+
+  function cancelEditTx(){
+    invEditingTx = null;
+    render();
+  }
+
+  function saveEditTx(ticker, id, dateValue, type, qtyRaw, priceRaw){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    const tx = a.history.find(t => t.id === id);
+    if (!tx) return;
+    const qty = evalSum(qtyRaw);
+    const price = evalSum(priceRaw);
+    if (!dateValue || !qty || qty <= 0 || !price || price <= 0) return;
+    tx.date = dateValue; tx.type = type; tx.qty = qty; tx.price = price;
+    invEditingTx = null;
+    saveInvestments();
+    render();
+  }
+
+  function askDeleteTx(ticker, id){
+    invConfirmingDeleteTx = { ticker, id };
+    render();
+  }
+  function cancelDeleteTx(){
+    invConfirmingDeleteTx = null;
+    render();
+  }
+  function deleteTx(ticker, id){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    a.history = a.history.filter(t => t.id !== id);
+    if (invEditingTx && invEditingTx.ticker === ticker && invEditingTx.id === id) invEditingTx = null;
+    invConfirmingDeleteTx = null;
+    saveInvestments();
+    render();
+  }
+
+  function askResetAssetHistory(ticker){
+    invConfirmingReset = ticker;
+    render();
+  }
+  function cancelResetAssetHistory(){
+    invConfirmingReset = null;
+    render();
+  }
+  function confirmResetAssetHistory(ticker){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    a.history = [];
+    invConfirmingReset = null;
+    saveInvestments();
+    render();
+  }
+
+  function askRemoveAsset(ticker){
+    invConfirmingRemoveAsset = ticker;
+    render();
+  }
+  function cancelRemoveAsset(){
+    invConfirmingRemoveAsset = null;
+    render();
+  }
+  function confirmRemoveAsset(ticker){
+    if (!invState.assets[ticker]) return;
+    delete invState.assets[ticker];
+    if (invOpenForm === ticker) invOpenForm = null;
+    delete invHistoryOpen[ticker];
+    delete invProvFormOpen[ticker];
+    delete invProvHistOpen[ticker];
+    if (invEditingTx && invEditingTx.ticker === ticker) invEditingTx = null;
+    if (invEditingProv && invEditingProv.ticker === ticker) invEditingProv = null;
+    invConfirmingRemoveAsset = null;
+    saveInvestments();
+    render();
+  }
+
+  function updateAssetPrice(ticker, value){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    a.price = evalSum(value);
+    saveInvestments();
+    render();
+  }
+
+  // ---- Proventos ----
+  function recordProvento(ticker, dateRaw, valorCotaRaw){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    const date = dateRaw;
+    const valorCota = evalSum(valorCotaRaw);
+    if (!date || !valorCota || valorCota <= 0) return;
+    const qtyCota = qtyAsOf(a, date);
+    const total = Math.round(valorCota * qtyCota * 100) / 100;
+    a.proventos.unshift({ id: 'pv_' + Math.random().toString(36).slice(2) + Date.now(), date, valorCota, qtyCota, total });
+    invProvFormOpen[ticker] = false;
+    saveInvestments();
+    render();
+  }
+
+  function startEditProv(ticker, id){
+    invEditingProv = { ticker, id };
+    render();
+  }
+  function cancelEditProv(){ invEditingProv = null; render(); }
+
+  function saveEditProv(ticker, id, dateRaw, valorCotaRaw){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    const p = a.proventos.find(x => x.id === id);
+    if (!p) return;
+    const valorCota = evalSum(valorCotaRaw);
+    if (!dateRaw || !valorCota || valorCota <= 0) return;
+    p.date = dateRaw;
+    p.valorCota = valorCota;
+    p.qtyCota = qtyAsOf(a, dateRaw);
+    p.total = Math.round(p.valorCota * p.qtyCota * 100) / 100;
+    invEditingProv = null;
+    saveInvestments();
+    render();
+  }
+
+  function askDeleteProv(ticker, id){
+    invConfirmingDeleteProv = { ticker, id };
+    render();
+  }
+  function cancelDeleteProv(){
+    invConfirmingDeleteProv = null;
+    render();
+  }
+  function deleteProv(ticker, id){
+    const a = invState.assets[ticker];
+    if (!a) return;
+    a.proventos = a.proventos.filter(p => p.id !== id);
+    if (invEditingProv && invEditingProv.ticker === ticker && invEditingProv.id === id) invEditingProv = null;
+    invConfirmingDeleteProv = null;
+    saveInvestments();
+    render();
+  }
+
+  function toggleProvForm(ticker){
+    invProvFormOpen[ticker] = !invProvFormOpen[ticker];
+    invEditingProv = null;
+    render();
+  }
+
+  function toggleProvHist(ticker){
+    invProvHistOpen[ticker] = !invProvHistOpen[ticker];
+    render();
+  }
+
+  function updateReserveTurbo(value){
+    invState.reserve.turboValue = evalSum(value);
+    saveInvestments();
+    render();
+  }
+
+  function updateReserveNormal(value){
+    invState.reserve.normalValue = evalSum(value);
+    saveInvestments();
+    render();
+  }
+
+  function addYieldEntry(monthValue, amountRaw){
+    if (!monthValue) return;
+    const amount = evalSum(amountRaw);
+    if (!amount) return;
+    const log = invState.reserve.yieldLog;
+    const existingIdx = log.findIndex(e => e.month === monthValue);
+    if (existingIdx >= 0) log[existingIdx].amount = amount;
+    else log.push({ month: monthValue, amount });
+    log.sort((a,b) => a.month < b.month ? 1 : -1); // mais recente primeiro
+    reserveFormOpen = false;
+    saveInvestments();
+    render();
+  }
+
+  function removeYieldEntry(month){
+    invState.reserve.yieldLog = invState.reserve.yieldLog.filter(e => e.month !== month);
+    saveInvestments();
+    render();
+  }
+
+  function toggleReserveForm(){
+    reserveFormOpen = !reserveFormOpen;
+    render();
+  }
+
+  function fmtMonthLabel(monthValue){
+    const [y,m] = monthValue.split('-');
+    return MONTH_NAMES[parseInt(m,10)-1].replace(/^./, c => c.toUpperCase()) + '/' + y;
+  }
+
+  function detectKind(ticker){
+    const t = ticker.trim().toUpperCase();
+    if (/^[A-Z]{4}11$/.test(t)) return 'FII';
+    if (/^[A-Z]{4}3[4-9]$/.test(t)) return 'Outro'; // padrão de BDR
+    if (/^[A-Z]{4}[3-6]$/.test(t)) return 'Ação';
+    if (/^[A-Z]{2,5}$/.test(t) && t.length <= 4) return 'Cripto';
+    return 'Outro';
+  }
+
+  function toggleNewAssetForm(){
+    newAssetFormOpen = !newAssetFormOpen;
+    render();
+  }
+
+  function addNewAsset(tickerRaw, kind, qtyRaw, pmRaw, priceRaw){
+    const ticker = tickerRaw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!ticker) return;
+    const qty = evalSum(qtyRaw);
+    const pm = evalSum(pmRaw);
+    const price = evalSum(priceRaw) || pm;
+    if (invState.assets[ticker]) return; // já existe, não sobrescreve
+    invState.assets[ticker] = { baseQty: qty, basePM: pm, price, kind, history: [] };
+    newAssetFormOpen = false;
+    saveInvestments();
+    render();
+  }
+
+  function toggleTxForm(ticker){
+    invOpenForm = (invOpenForm === ticker) ? null : ticker;
+    render();
+  }
+
+  function toggleHistory(ticker){
+    invHistoryOpen[ticker] = !invHistoryOpen[ticker];
+    render();
+  }
+
+  function changeMonth(delta){
+    let m = view.month + delta;
+    let y = view.year;
+    if (m < 0){ m = 11; y--; }
+    if (m > 11){ m = 0; y++; }
+    if (y < MIN_YEAR || (y === MIN_YEAR && m < MIN_MONTH)) return;
+    view = { year:y, month:m };
+    confirmingReset = false;
+    render();
+  }
+
+  function goToMonth(y, m){
+    view = clampToMin(y, m);
+    confirmingReset = false;
+    monthPickerOpen = false;
+    render();
+  }
+
+  function openMonthPicker(){
+    monthPickerOpen = true;
+    render();
+    setTimeout(() => {
+      const inp = document.getElementById('tf-month-picker');
+      if (inp){ inp.focus(); if (inp.showPicker) try{ inp.showPicker(); } catch(e){} }
+    }, 30);
+  }
+
+  function resetMonth(){
+    const key = monthKey(view.year, view.month);
+    delete state.months[key];
+    confirmingReset = false;
+    saveData();
+    render();
+  }
+
+  function gaugeColorStop(saldo){
+    // 0 -> hot, 1500+ -> cold, smooth across mid/warm
+    const t = Math.max(0, Math.min(1, saldo / 1500));
+    return t;
+  }
+
+  function renderDiario(){
+    const app = document.getElementById('tf-app');
+    if (!state.loaded){
+      app.innerHTML = '<div class="tf-loading">Carregando seus lançamentos...</div>';
+      return;
+    }
+    const { year, month } = view;
+    const mo = getMonth(year, month, true);
+    const nd = daysInMonth(year, month);
+    const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth());
+    const opening = getOpeningBalance(year, month);
+
+    let totalEntrada=0, totalSaida=0, totalDiario=0;
+    let rows = '';
+    for(let d=1; d<=nd; d++){
+      const e = dayEntry(mo,d);
+      const saldo = computeSaldoForDay(mo,d,opening);
+      totalEntrada += e.entrada||0;
+      totalSaida += e.saida||0;
+      totalDiario += e.diario||0;
+      const isToday = isCurrentMonth && d === today.getDate();
+
+      function cellHtml(field, val){
+        const note = getNote(mo, d, field);
+        const hasNote = !!note;
+        return `<td class="tf-notable ${hasNote ? 'tf-has-note' : ''}">
+          <input type="text" inputmode="decimal"
+            value="${val?val:''}" placeholder="—"
+            data-d="${d}" data-f="${field}"
+          >
+          ${hasNote ? `<div class="tf-tooltip">${note.replace(/</g,'&lt;')}</div>` : ''}
+        </td>`;
+      }
+
+      rows += `<tr class="${isToday?'tf-today':''}">
+        <td class="tf-day">${d}</td>
+        ${cellHtml('entrada', e.entrada)}
+        ${cellHtml('saida', e.saida)}
+        ${cellHtml('diario', e.diario)}
+        <td><input class="tf-saldo" value="${fmtBRL(saldo)}" readonly></td>
+      </tr>`;
+    }
+
+    const finalSaldo = computeSaldoForDay(mo, nd, opening);
+    const saidaTotal = totalSaida + totalDiario;
+    const performance = totalEntrada - saidaTotal;
+    const refDay = isCurrentMonth ? Math.min(today.getDate(), nd) : nd;
+    const gaugeSaldo = computeSaldoForDay(mo, refDay, opening);
+    const t = gaugeColorStop(gaugeSaldo);
+    const maskHeight = (1 - t) * 100;
+
+    app.innerHTML = `
+      <div class="tf-head">
+        <div>
+          <div class="tf-title">Termômetro Financeiro</div>
+          <div class="tf-sub">Lançamento diário a partir de setembro/2024 — entradas, saídas e gasto do dia a dia</div>
+        </div>
+        ${themeSwitchHtml()}
+      </div>
+      ${tabBarHtml()}
+
+      <div class="tf-nav">
+        <button id="tf-prev" ${isAtMin(year,month) ? 'disabled style="opacity:.35;cursor:default"' : ''}>‹</button>
+        ${monthPickerOpen
+          ? `<input type="month" id="tf-month-picker" class="tf-month-picker" value="${monthKey(year,month)}" min="${monthKey(MIN_YEAR,MIN_MONTH)}">`
+          : `<button id="tf-month-label-btn" class="tf-month-label">${MONTH_NAMES[month]} de ${year}</button>`
+        }
+        <button id="tf-next">›</button>
+        ${!isCurrentMonth ? `<button id="tf-today" class="tf-reset" style="flex-shrink:0;">Hoje</button>` : ''}
+      </div>
+
+      <div class="tf-main">
+        <div class="tf-gauge-col">
+          <div class="tf-gauge">
+            <div class="tf-gauge-mask" style="height:${maskHeight}%"></div>
+          </div>
+          <div class="tf-gauge-value">${fmtBRL(gaugeSaldo)}</div>
+          <div class="tf-gauge-label">${isCurrentMonth ? 'saldo hoje' : 'saldo no fim do mês'}</div>
+        </div>
+
+        <div class="tf-body">
+          <div class="tf-opening">
+            Saldo de abertura do mês:
+            ${isAtMin(year,month)
+              ? `<input id="tf-opening-input" type="text" inputmode="decimal" value="${mo.openingBalance||0}">`
+              : `<span class="tf-opening-auto">${fmtBRL(opening)}</span><span class="tf-opening-auto-note">calculado automaticamente a partir do saldo final de ${MONTH_NAMES[prevYM(year,month).m]}/${prevYM(year,month).y}</span>`
+            }
+          </div>
+          <div class="tf-hint">Dica: dá pra fazer conta direto no campo — soma com <strong>+</strong> e desconto/correção com <strong>-</strong>, ex. <strong>50,00-12,50+8</strong> — ele calcula sozinho ao sair do campo.</div>
+          <div class="tf-hint">Dica: clique com o botão direito numa célula (ou segure pressionado no celular) pra adicionar uma nota — células com nota mostram um <span style="color:var(--cold)">●</span> no canto.</div>
+
+          <div class="tf-table-wrap">
+            <table class="tf-table">
+              <thead>
+                <tr><th>Dia</th><th>Entrada</th><th>Saída</th><th>Diário</th><th>Saldo</th></tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+
+          <div class="tf-summary">
+            <div class="tf-pill"><div class="tf-pill-label">Entradas</div><div class="tf-pill-value" style="color:var(--good)">${fmtBRL(totalEntrada)}</div></div>
+            <div class="tf-pill"><div class="tf-pill-label">Saídas</div><div class="tf-pill-value" style="color:var(--hot)">${fmtBRL(totalSaida)}</div></div>
+            <div class="tf-pill"><div class="tf-pill-label">Diário</div><div class="tf-pill-value" style="color:var(--warm)">${fmtBRL(totalDiario)}</div></div>
+            <div class="tf-pill"><div class="tf-pill-label">Saldo final</div><div class="tf-pill-value">${fmtBRL(finalSaldo)}</div></div>
+          </div>
+          <div class="tf-summary">
+            <div class="tf-pill"><div class="tf-pill-label">Saída Total (Saída + Diário)</div><div class="tf-pill-value" style="color:var(--hot)">${fmtBRL(saidaTotal)}</div></div>
+            <div class="tf-pill"><div class="tf-pill-label">Performance (Entradas − Saída Total)</div><div class="tf-pill-value" style="color:${performance>=0?'var(--good)':'var(--hot)'}">${fmtBRL(performance)}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tf-footer-bar">
+        <span>Dados salvos só na sua conta — ninguém mais vê isso.</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="tf-reset" id="tf-export-btn">⬇ Exportar backup</button>
+          <button class="tf-reset" id="tf-import-btn">⬆ Importar backup</button>
+          <input type="file" id="tf-import-file" accept="application/json" style="display:none">
+          ${confirmingReset
+            ? `<div class="tf-confirm">
+                 <span>Apagar lançamentos deste mês?</span>
+                 <button class="yes" id="tf-reset-yes">Apagar</button>
+                 <button class="no" id="tf-reset-no">Cancelar</button>
+               </div>`
+            : `<button class="tf-reset" id="tf-reset-btn">Limpar mês</button>`
+          }
+        </div>
+      </div>
+    `;
+
+    document.getElementById('tf-prev').onclick = () => changeMonth(-1);
+    document.getElementById('tf-next').onclick = () => changeMonth(1);
+    const monthLabelBtn = document.getElementById('tf-month-label-btn');
+    if (monthLabelBtn) monthLabelBtn.onclick = openMonthPicker;
+    const monthPicker = document.getElementById('tf-month-picker');
+    if (monthPicker){
+      monthPicker.onchange = (ev) => {
+        const [py, pm] = ev.target.value.split('-').map(Number);
+        if (py && pm) goToMonth(py, pm - 1);
+      };
+      monthPicker.onblur = () => { monthPickerOpen = false; render(); };
+    }
+    const todayBtn = document.getElementById('tf-today');
+    if (todayBtn) todayBtn.onclick = () => goToMonth(today.getFullYear(), today.getMonth());
+    const openingInput = document.getElementById('tf-opening-input');
+    if (openingInput) openingInput.onchange = (ev) => setOpening(year, month, ev.target.value);
+
+    document.getElementById('tf-export-btn').onclick = exportBackup;
+    document.getElementById('tf-import-btn').onclick = () => document.getElementById('tf-import-file').click();
+    document.getElementById('tf-import-file').onchange = (ev) => {
+      const file = ev.target.files[0];
+      if (file) importBackup(file);
+    };
+
+    if (confirmingReset){
+      document.getElementById('tf-reset-yes').onclick = resetMonth;
+      document.getElementById('tf-reset-no').onclick = () => { confirmingReset = false; render(); };
+    } else {
+      document.getElementById('tf-reset-btn').onclick = () => { confirmingReset = true; render(); };
+    }
+
+    app.querySelectorAll('input[data-d]').forEach(inp => {
+      const d = +inp.dataset.d, field = inp.dataset.f;
+      let edited = false;
+
+      inp.oninput = () => { edited = true; };
+
+      // Ao focar: mostra a expressão bruta se existir (persistida nos dados do dia)
+      inp.onfocus = () => {
+        const expr = getExpr(mo, d, field);
+        if (expr) inp.value = expr;
+      };
+
+      // Ao sair: só salva se o usuário realmente digitou algo; sempre redesenha mostrando o total
+      inp.onblur = (ev) => {
+        if (edited) setEntry(year, month, d, field, ev.target.value);
+        else render();
+      };
+
+      // Clique direito: abre menu de contexto de nota
+      inp.oncontextmenu = (ev) => {
+        ev.preventDefault();
+        showCtxMenu(ev.clientX, ev.clientY, { y: year, m: month, d, field });
+      };
+
+      // Mobile: pressionar e segurar (touchstart 600ms) abre o menu
+      let _touchTimer;
+      inp.addEventListener('touchstart', ev => {
+        _touchTimer = setTimeout(() => {
+          ev.preventDefault();
+          const t = ev.touches[0];
+          showCtxMenu(t.clientX, t.clientY, { y: year, m: month, d, field });
+        }, 600);
+      });
+      inp.addEventListener('touchend', () => clearTimeout(_touchTimer));
+      inp.addEventListener('touchmove', () => clearTimeout(_touchTimer));
+    });
+
+    wireTabs();
+  }
+
+  function fmtPct(v){
+    const sign = v > 0 ? '+' : '';
+    return sign + v.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + '%';
+  }
+
+  function renderInvestimentos(){
+    const app = document.getElementById('tf-app');
+    if (!invState.loaded){
+      app.innerHTML = '<div class="tf-loading">Carregando seus investimentos...</div>';
+      return;
+    }
+
+    const tickers = Object.keys(invState.assets).sort((a,b) => {
+      const ka = invState.assets[a].kind, kb = invState.assets[b].kind;
+      const oa = KIND_ORDER[ka] !== undefined ? KIND_ORDER[ka] : 9;
+      const ob = KIND_ORDER[kb] !== undefined ? KIND_ORDER[kb] : 9;
+      if (oa !== ob) return oa - ob;
+      return a.localeCompare(b);
+    });
+    let totalInvestido = 0, totalAtual = 0;
+    const cardsHtml = tickers.map(ticker => {
+      const a = invState.assets[ticker];
+      const { qty, pm } = recomputePosition(a);
+      const valorInvestido = qty * pm;
+      const valorAtual = qty * a.price;
+      const rent = valorInvestido > 0 ? ((valorAtual - valorInvestido) / valorInvestido) * 100 : 0;
+      totalInvestido += valorInvestido;
+      totalAtual += valorAtual;
+      const rentColor = rent >= 0 ? 'var(--good)' : 'var(--hot)';
+
+      const formHtml = invOpenForm === ticker ? `
+        <div class="tf-tx-form">
+          <div><label>Tipo</label>
+            <select id="tf-tx-type-${ticker}">
+              <option value="compra">Compra</option>
+              <option value="venda">Venda</option>
+            </select>
+          </div>
+          <div><label>Qtd</label><input id="tf-tx-qty-${ticker}" type="text" inputmode="decimal" placeholder="0" style="width:70px"></div>
+          <div><label>Preço</label><input id="tf-tx-price-${ticker}" type="text" inputmode="decimal" placeholder="0,00" style="width:80px"></div>
+          <button class="confirm" id="tf-tx-confirm-${ticker}">Registrar</button>
+        </div>` : '';
+
+      const sortedHist = [...a.history].sort((x,y) => x.date < y.date ? 1 : -1); // mais recente primeiro
+      const histList = sortedHist.length === 0
+        ? `<div class="tf-history-empty">Sem movimentações registradas ainda.</div>`
+        : sortedHist.map(h => {
+            const isEditing = invEditingTx && invEditingTx.ticker === ticker && invEditingTx.id === h.id;
+            if (isEditing){
+              return `<div class="tf-tx-form" style="margin:4px 0;">
+                <div><label>Data</label><input id="tf-edit-date" type="date" value="${h.date}" style="width:120px"></div>
+                <div><label>Tipo</label>
+                  <select id="tf-edit-type">
+                    <option value="compra" ${h.type==='compra'?'selected':''}>Compra</option>
+                    <option value="venda" ${h.type==='venda'?'selected':''}>Venda</option>
+                  </select>
+                </div>
+                <div><label>Qtd</label><input id="tf-edit-qty" type="text" inputmode="decimal" value="${h.qty}" style="width:60px"></div>
+                <div><label>Preço</label><input id="tf-edit-price" type="text" inputmode="decimal" value="${h.price}" style="width:75px"></div>
+                <button class="confirm" data-save-edit="${h.id}">Salvar</button>
+                <button data-cancel-edit style="background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:11.5px;">Cancelar</button>
+              </div>`;
+            }
+            const isDeletingTx = invConfirmingDeleteTx && invConfirmingDeleteTx.ticker === ticker && invConfirmingDeleteTx.id === h.id;
+            return `<div class="tf-history-row">
+              <span>${h.date}</span><span>${h.type === 'compra' ? 'Compra' : 'Venda'}</span><span>${h.qty} cotas/ações</span><span>${fmtBRL(h.price)}</span>
+              <span style="display:flex;gap:6px;align-items:center;">
+                ${isDeletingTx
+                  ? `<span style="color:var(--hot)">Excluir?</span>
+                     <button data-del-tx-yes="${ticker}|${h.id}" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:11px;font-weight:700;">sim</button>
+                     <button data-del-tx-no style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">não</button>`
+                  : `<button data-edit-tx="${ticker}|${h.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">editar</button>
+                     <button data-del-tx="${ticker}|${h.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">excluir</button>`
+                }
+              </span>
+            </div>`;
+          }).join('');
+      // --- Proventos ---
+      const totalProv = a.proventos.reduce((s,p) => s + p.total, 0);
+      const yieldOnCost = valorInvestido > 0 ? (totalProv / valorInvestido) * 100 : 0;
+      const provSorted = [...a.proventos].sort((x,y) => x.date < y.date ? 1 : -1);
+
+      const provFormHtml = invProvFormOpen[ticker] ? `
+        <div class="tf-tx-form">
+          <div><label>Data pgto</label><input id="tf-pv-date-${ticker}" type="date" value="${todayISO()}" style="width:130px"></div>
+          <div><label>R$/cota</label><input id="tf-pv-valor-${ticker}" type="text" inputmode="decimal" placeholder="0,00" style="width:80px"></div>
+          <button class="confirm" data-pv-confirm="${ticker}">Registrar</button>
+        </div>` : '';
+
+      const provRows = provSorted.length === 0
+        ? `<div class="tf-history-empty">Nenhum provento registrado ainda.</div>`
+        : provSorted.map(p => {
+            const isEditing = invEditingProv && invEditingProv.ticker === ticker && invEditingProv.id === p.id;
+            if (isEditing){
+              return `<div class="tf-tx-form" style="margin:4px 0;">
+                <div><label>Data</label><input id="tf-pv-edit-date" type="date" value="${p.date}" style="width:130px"></div>
+                <div><label>R$/cota</label><input id="tf-pv-edit-valor" type="text" inputmode="decimal" value="${p.valorCota}" style="width:80px"></div>
+                <button class="confirm" data-pv-save-edit="${p.id}">Salvar</button>
+                <button data-pv-cancel-edit style="background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:11.5px;">Cancelar</button>
+              </div>`;
+            }
+            const isDeletingProv = invConfirmingDeleteProv && invConfirmingDeleteProv.ticker === ticker && invConfirmingDeleteProv.id === p.id;
+            return `<div class="tf-history-row">
+              <span>${p.date}</span>
+              <span style="color:var(--muted)">${p.qtyCota} cotas</span>
+              <span>${fmtBRL(p.valorCota)}/cota</span>
+              <span style="color:var(--good);font-weight:600">+${fmtBRL(p.total)}</span>
+              <span style="display:flex;gap:6px;align-items:center;">
+                ${isDeletingProv
+                  ? `<span style="color:var(--hot)">Excluir?</span>
+                     <button data-pv-del-yes="${ticker}|${p.id}" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:11px;font-weight:700;">sim</button>
+                     <button data-pv-del-no style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">não</button>`
+                  : `<button data-pv-edit="${ticker}|${p.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">editar</button>
+                     <button data-pv-del="${ticker}|${p.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">excluir</button>`
+                }
+              </span>
+            </div>`;
+          }).join('');
+
+      const proventosHtml = invProvHistOpen[ticker] ? `
+        <div class="tf-history">${provRows}</div>` : '';
+
+      const historyHtml = invHistoryOpen[ticker] ? `
+        <div class="tf-history">${histList}</div>
+        ${a.history.length > 0 ? (
+          invConfirmingReset === ticker
+            ? `<div class="tf-confirm" style="margin-top:8px;">
+                 <span style="font-size:11.5px;color:var(--muted);">Apagar todo o histórico e voltar pra posição inicial (${a.baseQty} cotas/ações, PM ${fmtBRL(a.basePM)})?</span>
+                 <button class="yes" data-reset-yes="${ticker}">Apagar</button>
+                 <button class="no" data-reset-no>Cancelar</button>
+               </div>`
+            : `<button data-reset-hist="${ticker}" style="margin-top:8px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:11.5px;">Resetar histórico</button>`
+        ) : ''}
+      ` : '';
+
+      return `<div class="tf-card">
+        <div class="tf-card-head">
+          <div><span class="tf-card-ticker">${ticker}</span><span class="tf-badge">${a.kind}</span></div>
+          <div class="tf-card-rent" style="color:${rentColor}">${fmtPct(rent)}</div>
+        </div>
+        <div class="tf-card-grid">
+          <div class="tf-card-field"><div class="tf-card-field-label">Qtd</div><div class="tf-card-field-value">${qty}</div></div>
+          <div class="tf-card-field"><div class="tf-card-field-label">Preço médio</div><div class="tf-card-field-value">${fmtBRL(pm)}</div></div>
+          <div class="tf-card-field"><div class="tf-card-field-label">Preço atual</div><input data-price="${ticker}" type="text" inputmode="decimal" value="${a.price}"></div>
+          <div class="tf-card-field"><div class="tf-card-field-label">Valor atual</div><div class="tf-card-field-value">${fmtBRL(valorAtual)}</div></div>
+        </div>
+        <div class="tf-card-field-label">Valor investido: <span style="color:var(--text)">${fmtBRL(valorInvestido)}</span></div>
+        ${formHtml}
+        <div class="tf-card-actions">
+          <button data-toggle-form="${ticker}">${invOpenForm===ticker?'Cancelar':'+ Aporte/Venda'}</button>
+          <button data-toggle-hist="${ticker}">${invHistoryOpen[ticker]?'Ocultar histórico':'Ver histórico'} (${a.history.length})</button>
+          ${invConfirmingRemoveAsset === ticker ? '' : `<button data-remove-asset="${ticker}" style="color:var(--hot);border-color:var(--hot);">Remover ativo</button>`}
+        </div>
+        ${invConfirmingRemoveAsset === ticker ? `
+          <div class="tf-confirm" style="margin-top:8px;">
+            <span style="font-size:11.5px;color:var(--muted);">Remover ${ticker} da carteira? Isso apaga o card, o histórico de aportes/vendas e os proventos registrados.</span>
+            <button class="yes" data-remove-asset-yes="${ticker}">Remover</button>
+            <button class="no" data-remove-asset-no>Cancelar</button>
+          </div>
+        ` : ''}
+        ${historyHtml}
+        <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+            <div>
+              <span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Proventos recebidos</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--good);font-size:14px;margin-left:10px;">${fmtBRL(totalProv)}</span>
+              <span style="font-size:10.5px;color:var(--muted);margin-left:6px;">· Yield s/ custo: ${fmtPct(yieldOnCost)}</span>
+            </div>
+          </div>
+          ${provFormHtml}
+          <div class="tf-card-actions" style="margin-top:4px;">
+            <button data-toggle-prov-form="${ticker}">${invProvFormOpen[ticker]?'Cancelar':'+ Registrar provento'}</button>
+            <button data-toggle-prov-hist="${ticker}">${invProvHistOpen[ticker]?'Ocultar proventos':'Ver proventos'} (${a.proventos.length})</button>
+          </div>
+          ${proventosHtml}
+        </div>
+      </div>`;
+    }).join('');
+
+    const r = invState.reserve;
+    const totalReserva = (r.turboValue || 0) + (r.normalValue || 0);
+    const excedeuTurbo = r.turboValue > r.turboCap;
+    const totalRendimentos = r.yieldLog.reduce((s,e) => s + e.amount, 0);
+    const yieldRows = r.yieldLog.length === 0
+      ? `<div class="tf-history-empty">Nenhum rendimento registrado ainda.</div>`
+      : r.yieldLog.map(e => `<div class="tf-history-row">
+          <span>${fmtMonthLabel(e.month)}</span><span style="color:var(--good)">+${fmtBRL(e.amount)}</span>
+          <span><button data-rm-yield="${e.month}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">remover</button></span>
+        </div>`).join('');
+    const yieldFormHtml = reserveFormOpen ? `
+      <div class="tf-tx-form">
+        <div><label>Mês</label><input id="tf-yield-month" type="month"></div>
+        <div><label>Rendimento (R$)</label><input id="tf-yield-amount" type="text" inputmode="decimal" placeholder="0,00" style="width:90px"></div>
+        <button class="confirm" id="tf-yield-confirm">Registrar</button>
+      </div>` : '';
+    const reserveCard = `
+      <div class="tf-reserve-card">
+        <div class="tf-card-head">
+          <div><span class="tf-card-ticker">Reserva de emergência</span><span class="tf-badge">Nubank</span></div>
+        </div>
+        <div class="tf-card-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="tf-card-field"><div class="tf-card-field-label">Valor na caixinha turbo (115% CDI)</div><input id="tf-reserve-turbo-input" type="text" inputmode="decimal" value="${r.turboValue}"></div>
+          <div class="tf-card-field"><div class="tf-card-field-label">Valor na caixinha (100% CDI)</div><input id="tf-reserve-normal-input" type="text" inputmode="decimal" value="${r.normalValue}"></div>
+        </div>
+        <div class="tf-reserve-bars">
+          <div class="tf-reserve-bar">
+            <div class="tf-reserve-bar-label">Total na reserva</div>
+            <div class="tf-reserve-bar-value" style="color:var(--cold)">${fmtBRL(totalReserva)}</div>
+          </div>
+          <div class="tf-reserve-bar">
+            <div class="tf-reserve-bar-label">Rendimentos registrados</div>
+            <div class="tf-reserve-bar-value" style="color:var(--good)">${fmtBRL(totalRendimentos)}</div>
+          </div>
+        </div>
+        <div class="tf-reserve-note">${excedeuTurbo ? `A turbo rende 115% CDI só até ${fmtBRL(r.turboCap)} — o que passar disso rende 100% CDI, mesmo dentro da caixinha turbo.` : `Limite da turbo: ${fmtBRL(r.turboCap)} (rende 115% CDI até esse valor).`}</div>
+        ${yieldFormHtml}
+        <div class="tf-card-actions">
+          <button id="tf-yield-toggle">${reserveFormOpen ? 'Cancelar' : '+ Registrar rendimento do mês'}</button>
+        </div>
+        <div class="tf-history">${yieldRows}</div>
+      </div>`;
+
+    app.innerHTML = `
+      <div class="tf-head">
+        <div>
+          <div class="tf-title">Termômetro Financeiro</div>
+          <div class="tf-sub">Investimentos — carteira, aportes e reserva</div>
+        </div>
+        ${themeSwitchHtml()}
+      </div>
+      ${tabBarHtml()}
+
+      <div class="tf-inv-summary">
+        <div class="tf-pill"><div class="tf-pill-label">Investido</div><div class="tf-pill-value">${fmtBRL(totalInvestido)}</div></div>
+        <div class="tf-pill"><div class="tf-pill-label">Valor atual</div><div class="tf-pill-value">${fmtBRL(totalAtual)}</div></div>
+        <div class="tf-pill"><div class="tf-pill-label">Rentabilidade</div><div class="tf-pill-value" style="color:${totalAtual>=totalInvestido?'var(--good)':'var(--hot)'}">${fmtPct(totalInvestido>0 ? ((totalAtual-totalInvestido)/totalInvestido)*100 : 0)}</div></div>
+        <div class="tf-pill"><div class="tf-pill-label">+ Reserva</div><div class="tf-pill-value">${fmtBRL(totalAtual + totalReserva)}</div></div>
+      </div>
+
+      ${reserveCard}
+
+      <div class="tf-card-actions" style="margin-bottom:10px;">
+        <button id="tf-new-asset-toggle">${newAssetFormOpen ? 'Cancelar' : '+ Novo ativo'}</button>
+      </div>
+      ${newAssetFormOpen ? `
+        <div class="tf-tx-form" style="margin-bottom:14px;">
+          <div><label>Ticker</label><input id="tf-na-ticker" type="text" placeholder="ex: HGLG11" style="width:100px;text-transform:uppercase;"></div>
+          <div><label>Tipo</label>
+            <select id="tf-na-kind">
+              <option value="FII">FII</option>
+              <option value="Ação">Ação</option>
+              <option value="ETF">ETF</option>
+              <option value="Cripto">Cripto</option>
+              <option value="Renda Fixa">Renda Fixa</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div><label>Qtd</label><input id="tf-na-qty" type="text" inputmode="decimal" placeholder="0" style="width:70px"></div>
+          <div><label>Preço médio</label><input id="tf-na-pm" type="text" inputmode="decimal" placeholder="0,00" style="width:80px"></div>
+          <div><label>Preço atual</label><input id="tf-na-price" type="text" inputmode="decimal" placeholder="(=PM se vazio)" style="width:100px"></div>
+          <button class="confirm" id="tf-na-confirm">Adicionar</button>
+        </div>` : ''}
+
+      <div class="tf-cards">${cardsHtml}</div>
+
+      <div class="tf-footer-bar">
+        <span>Preços de mercado são editáveis — atualize quando quiser conferência exata.</span>
+      </div>
+    `;
+
+    wireTabs();
+    document.getElementById('tf-reserve-turbo-input').onchange = (ev) => updateReserveTurbo(ev.target.value);
+    document.getElementById('tf-reserve-normal-input').onchange = (ev) => updateReserveNormal(ev.target.value);
+    app.querySelectorAll('input[data-price]').forEach(inp => {
+      inp.onchange = (ev) => updateAssetPrice(ev.target.dataset.price, ev.target.value);
+    });
+    app.querySelectorAll('button[data-toggle-form]').forEach(btn => {
+      btn.onclick = () => toggleTxForm(btn.dataset.toggleForm);
+    });
+    app.querySelectorAll('button[data-toggle-hist]').forEach(btn => {
+      btn.onclick = () => toggleHistory(btn.dataset.toggleHist);
+    });
+    tickers.forEach(ticker => {
+      const confirmBtn = document.getElementById(`tf-tx-confirm-${ticker}`);
+      if (confirmBtn){
+        confirmBtn.onclick = () => {
+          const type = document.getElementById(`tf-tx-type-${ticker}`).value;
+          const qty = document.getElementById(`tf-tx-qty-${ticker}`).value;
+          const price = document.getElementById(`tf-tx-price-${ticker}`).value;
+          recordTransaction(ticker, type, qty, price);
+        };
+      }
+    });
+
+    // Editar / excluir transações do histórico
+    app.querySelectorAll('button[data-edit-tx]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.editTx.split('|');
+        startEditTx(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-del-tx]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.delTx.split('|');
+        askDeleteTx(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-del-tx-yes]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.delTxYes.split('|');
+        deleteTx(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-del-tx-no]').forEach(btn => {
+      btn.onclick = cancelDeleteTx;
+    });
+    app.querySelectorAll('button[data-save-edit]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.saveEdit;
+        const ticker = invEditingTx.ticker;
+        const dateValue = document.getElementById('tf-edit-date').value;
+        const type = document.getElementById('tf-edit-type').value;
+        const qty = document.getElementById('tf-edit-qty').value;
+        const price = document.getElementById('tf-edit-price').value;
+        saveEditTx(ticker, id, dateValue, type, qty, price);
+      };
+    });
+    app.querySelectorAll('button[data-cancel-edit]').forEach(btn => {
+      btn.onclick = cancelEditTx;
+    });
+
+    // Resetar histórico de um ativo
+    app.querySelectorAll('button[data-reset-hist]').forEach(btn => {
+      btn.onclick = () => askResetAssetHistory(btn.dataset.resetHist);
+    });
+    app.querySelectorAll('button[data-reset-yes]').forEach(btn => {
+      btn.onclick = () => confirmResetAssetHistory(btn.dataset.resetYes);
+    });
+    app.querySelectorAll('button[data-reset-no]').forEach(btn => {
+      btn.onclick = cancelResetAssetHistory;
+    });
+
+    // Remover ativo
+    app.querySelectorAll('button[data-remove-asset]').forEach(btn => {
+      btn.onclick = () => askRemoveAsset(btn.dataset.removeAsset);
+    });
+    app.querySelectorAll('button[data-remove-asset-yes]').forEach(btn => {
+      btn.onclick = () => confirmRemoveAsset(btn.dataset.removeAssetYes);
+    });
+    app.querySelectorAll('button[data-remove-asset-no]').forEach(btn => {
+      btn.onclick = cancelRemoveAsset;
+    });
+
+    // Proventos
+    app.querySelectorAll('button[data-toggle-prov-form]').forEach(btn => {
+      btn.onclick = () => toggleProvForm(btn.dataset.toggleProvForm);
+    });
+    app.querySelectorAll('button[data-toggle-prov-hist]').forEach(btn => {
+      btn.onclick = () => toggleProvHist(btn.dataset.toggleProvHist);
+    });
+    app.querySelectorAll('button[data-pv-confirm]').forEach(btn => {
+      btn.onclick = () => {
+        const t = btn.dataset.pvConfirm;
+        recordProvento(t,
+          document.getElementById(`tf-pv-date-${t}`).value,
+          document.getElementById(`tf-pv-valor-${t}`).value
+        );
+      };
+    });
+    app.querySelectorAll('button[data-pv-edit]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.pvEdit.split('|');
+        startEditProv(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-pv-del]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.pvDel.split('|');
+        askDeleteProv(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-pv-del-yes]').forEach(btn => {
+      btn.onclick = () => {
+        const [ticker, id] = btn.dataset.pvDelYes.split('|');
+        deleteProv(ticker, id);
+      };
+    });
+    app.querySelectorAll('button[data-pv-del-no]').forEach(btn => {
+      btn.onclick = cancelDeleteProv;
+    });
+    app.querySelectorAll('button[data-pv-save-edit]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.pvSaveEdit;
+        const ticker = invEditingProv.ticker;
+        saveEditProv(ticker, id,
+          document.getElementById('tf-pv-edit-date').value,
+          document.getElementById('tf-pv-edit-valor').value
+        );
+      };
+    });
+    app.querySelectorAll('button[data-pv-cancel-edit]').forEach(btn => {
+      btn.onclick = cancelEditProv;
+    });
+
+    // Rendimento mensal da reserva
+    document.getElementById('tf-yield-toggle').onclick = toggleReserveForm;
+    const yieldConfirm = document.getElementById('tf-yield-confirm');
+    if (yieldConfirm){
+      yieldConfirm.onclick = () => {
+        const month = document.getElementById('tf-yield-month').value;
+        const amount = document.getElementById('tf-yield-amount').value;
+        addYieldEntry(month, amount);
+      };
+    }
+    app.querySelectorAll('button[data-rm-yield]').forEach(btn => {
+      btn.onclick = () => removeYieldEntry(btn.dataset.rmYield);
+    });
+
+    // Novo ativo
+    document.getElementById('tf-new-asset-toggle').onclick = toggleNewAssetForm;
+    const naTicker = document.getElementById('tf-na-ticker');
+    if (naTicker){
+      naTicker.oninput = () => {
+        const kind = detectKind(naTicker.value);
+        const sel = document.getElementById('tf-na-kind');
+        if (sel && naTicker.value.trim()) sel.value = kind;
+      };
+    }
+    const naConfirm = document.getElementById('tf-na-confirm');
+    if (naConfirm){
+      naConfirm.onclick = () => {
+        const ticker = document.getElementById('tf-na-ticker').value;
+        const kind = document.getElementById('tf-na-kind').value;
+        const qty = document.getElementById('tf-na-qty').value;
+        const pm = document.getElementById('tf-na-pm').value;
+        const price = document.getElementById('tf-na-price').value;
+        addNewAsset(ticker, kind, qty, pm, price);
+      };
+    }
+  }
+
+  // ---- Dashboard ----
+  function buildLineChartSVG(points, seriesList, width, height){
+    const padL = 8, padR = 8, padT = 14, padB = 18;
+    const innerW = width - padL - padR, innerH = height - padT - padB;
+    const allVals = seriesList.flatMap(s => s.values);
+    let min = Math.min(0, ...allVals), max = Math.max(...allVals, 1);
+    if (max === min) max = min + 1;
+    const range = max - min;
+    const n = points.length;
+    const stepX = n > 1 ? innerW / (n - 1) : 0;
+    const xAt = i => padL + i * stepX;
+    const yAt = v => padT + innerH - ((v - min) / range) * innerH;
+    const zeroY = yAt(0);
+
+    let lastRealIdx = -1;
+    points.forEach((p,i) => { if (!p.isFuture) lastRealIdx = i; });
+    if (lastRealIdx === -1) lastRealIdx = n - 1;
+
+    let linesSvg = '';
+    seriesList.forEach(s => {
+      const solid = s.values.slice(0, lastRealIdx + 1).map((v,i) => `${xAt(i)},${yAt(v)}`).join(' ');
+      const future = s.values.slice(lastRealIdx).map((v,i) => `${xAt(i + lastRealIdx)},${yAt(v)}`).join(' ');
+      linesSvg += `<polyline points="${solid}" fill="none" style="stroke:${s.color}" stroke-width="${s.width||2}"></polyline>`;
+      linesSvg += `<polyline points="${future}" fill="none" style="stroke:${s.color}" stroke-width="${(s.width||2)*0.85}" stroke-dasharray="4,3" opacity="0.7"></polyline>`;
+      if (s.dots){
+        linesSvg += s.values.slice(0, lastRealIdx + 1).map((v,i) =>
+          `<circle cx="${xAt(i)}" cy="${yAt(v)}" r="2" style="fill:${s.color}"></circle>`
+        ).join('');
+      }
+    });
+
+    const labelEvery = Math.max(1, Math.ceil(n / 7));
+    let labels = '';
+    points.forEach((p,i) => {
+      if (i % labelEvery === 0 || i === n-1){
+        labels += `<text x="${xAt(i)}" y="${height-4}" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${MONTH_NAMES[p.m].slice(0,3)}/${String(p.y).slice(2)}</text>`;
+      }
+    });
+
+    return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">
+      <line x1="${padL}" y1="${zeroY}" x2="${width-padR}" y2="${zeroY}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2,3"></line>
+      ${linesSvg}
+      ${labels}
+    </svg>`;
+  }
+
+  function buildDonutSVG(segments, size){
+    const r = size/2 - 4, cx = size/2, cy = size/2, innerR = r * 0.56;
+    const total = segments.reduce((s,seg) => s + Math.max(seg.value,0), 0) || 1;
+    let angle = -Math.PI/2;
+    let paths = '';
+    segments.forEach(seg => {
+      const frac = Math.max(seg.value,0) / total;
+      if (frac <= 0.0005) return;
+      const sweep = frac * Math.PI * 2;
+      const a0 = angle, a1 = angle + sweep - 0.012; // pequeno gap entre fatias
+      const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
+      const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+      const ix0 = cx + innerR*Math.cos(a1), iy0 = cy + innerR*Math.sin(a1);
+      const ix1 = cx + innerR*Math.cos(a0), iy1 = cy + innerR*Math.sin(a0);
+      const largeArc = (sweep > Math.PI) ? 1 : 0;
+      paths += `<path d="M${x0},${y0} A${r},${r} 0 ${largeArc} 1 ${x1},${y1} L${ix0},${iy0} A${innerR},${innerR} 0 ${largeArc} 0 ${ix1},${iy1} Z" style="fill:${seg.color}"></path>`;
+      angle += sweep;
+    });
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}</svg>`;
+  }
+
+  function getMonthlySeries(){
+    const keys = Object.keys(state.months).filter(k => Object.keys(state.months[k].days||{}).length > 0).sort();
+    return keys.map(key => {
+      const [y, mm] = key.split('-').map(Number);
+      const m = mm - 1;
+      const mo = state.months[key];
+      const nd = daysInMonth(y, m);
+      const opening = getOpeningBalance(y, m);
+      let totalEntrada=0, totalSaida=0, totalDiario=0;
+      for (let d=1; d<=nd; d++){
+        const e = dayEntry(mo, d);
+        totalEntrada += e.entrada||0; totalSaida += e.saida||0; totalDiario += e.diario||0;
+      }
+      const saldoFinal = computeSaldoForDay(mo, nd, opening);
+      const saidaTotal = totalSaida + totalDiario;
+      const performance = totalEntrada - saidaTotal;
+      const isFuture = (y > today.getFullYear()) || (y === today.getFullYear() && m > today.getMonth());
+      const dateEnd = `${y}-${String(mm).padStart(2,'0')}-${String(nd).padStart(2,'0')}`;
+      return { key, y, m, saldoFinal, saidaTotal, performance, isFuture, dateEnd };
+    });
+  }
+
+  function renderDashboard(){
+    const app = document.getElementById('tf-app');
+    if (!state.loaded || !invState.loaded){
+      app.innerHTML = '<div class="tf-loading">Carregando o dashboard...</div>';
+      return;
+    }
+
+    const series = getMonthlySeries();
+    const realSeries = series.filter(p => !p.isFuture);
+    const avgGasto = realSeries.length ? realSeries.reduce((s,p) => s+p.saidaTotal, 0) / realSeries.length : 0;
+    const pctPositive = realSeries.length ? (realSeries.filter(p => p.performance >= 0).length / realSeries.length) * 100 : 0;
+
+    const tickers = Object.keys(invState.assets);
+    let totalInvestido = 0, totalAtual = 0;
+    const byKind = {};
+    tickers.forEach(t => {
+      const a = invState.assets[t];
+      const { qty, pm } = recomputePosition(a);
+      totalInvestido += qty * pm;
+      const va = qty * a.price;
+      totalAtual += va;
+      byKind[a.kind] = (byKind[a.kind]||0) + va;
+    });
+    const rentPonderada = totalInvestido > 0 ? ((totalAtual - totalInvestido) / totalInvestido) * 100 : 0;
+    const reserveValue = (invState.reserve.turboValue || 0) + (invState.reserve.normalValue || 0);
+    const totalRendimentos = (invState.reserve.yieldLog||[]).reduce((s,e) => s+e.amount, 0);
+    const totalProventos = tickers.reduce((s,t) => s + (invState.assets[t].proventos||[]).reduce((ps,p) => ps+p.total, 0), 0);
+    const provMedioMensal = (() => {
+      // pega todos os proventos, agrupa por mês, calcula média
+      const byMonth = {};
+      tickers.forEach(t => (invState.assets[t].proventos||[]).forEach(p => {
+        const key = p.date.slice(0,7);
+        byMonth[key] = (byMonth[key]||0) + p.total;
+      }));
+      const meses = Object.values(byMonth);
+      return meses.length ? meses.reduce((s,v)=>s+v,0)/meses.length : 0;
+    })();
+
+    const curKey = monthKey(today.getFullYear(), today.getMonth());
+    let ledgerToday = realSeries.length ? realSeries[realSeries.length-1].saldoFinal : 0;
+    if (state.months[curKey]){
+      const openingCur = getOpeningBalance(today.getFullYear(), today.getMonth());
+      ledgerToday = computeSaldoForDay(state.months[curKey], today.getDate(), openingCur);
+    }
+    const patrimonioTotal = ledgerToday + totalAtual + reserveValue;
+
+    // Investido (a preço de hoje) e patrimônio combinado em cada mês — reconstruído via
+    // qtyAsOf (replay do histórico de transações até a data) × preço atual. Reserva é
+    // aplicada como valor constante de hoje, já que não há histórico de saldo da caixinha.
+    const investSeries = series.map(p => tickers.reduce((s,t) => {
+      const a = invState.assets[t];
+      return s + qtyAsOf(a, p.dateEnd) * a.price;
+    }, 0));
+    const patrimonioSeries = series.map((p,i) => p.saldoFinal + investSeries[i] + reserveValue);
+    const ledgerSeries = series.map(p => p.saldoFinal);
+
+    const pieSegments = [
+      { label:'Conta corrente', value: Math.max(ledgerToday,0), color:'#38BDF8' },
+      { label:'FIIs', value: byKind['FII']||0, color:'#34D399' },
+      { label:'Ações', value: byKind['Ação']||0, color:'#FBBF24' },
+      { label:'Outros ativos', value: Math.max(totalAtual - (byKind['FII']||0) - (byKind['Ação']||0), 0), color:'#A78BFA' },
+      { label:'Reserva', value: reserveValue, color:'#F472B6' }
+    ].filter(s => s.value > 0.01);
+    const pieTotal = pieSegments.reduce((s,seg) => s+seg.value, 0) || 1;
+
+    const maxScale = Math.max(5000, Math.ceil((patrimonioTotal*1.3) / 1000) * 1000);
+    const gaugeT = Math.max(0, Math.min(1, patrimonioTotal / maxScale));
+    const gaugeMask = (1 - gaugeT) * 100;
+
+    const lineChart = series.length >= 2
+      ? buildLineChartSVG(series, [
+          { values: patrimonioSeries, color: 'var(--cold)', width: 2.4, dots: true },
+          { values: ledgerSeries, color: 'var(--muted)', width: 1.4, dots: false }
+        ], 560, 170)
+      : `<div class="tf-history-empty">Sem meses suficientes pra plotar ainda.</div>`;
+
+    const legendHtml = pieSegments.map(seg => `
+      <div class="tf-legend-row">
+        <span class="tf-legend-dot" style="background:${seg.color}"></span>
+        <span class="tf-legend-label">${seg.label}</span>
+        <span class="tf-legend-value">${fmtBRL(seg.value)} · ${((seg.value/pieTotal)*100).toFixed(1)}%</span>
+      </div>`).join('');
+
+    app.innerHTML = `
+      <div class="tf-head">
+        <div>
+          <div class="tf-title">Termômetro Financeiro</div>
+          <div class="tf-sub">Dashboard — visão consolidada de diário, investimentos e reserva</div>
+        </div>
+        ${themeSwitchHtml()}
+      </div>
+      ${tabBarHtml()}
+
+      <div class="tf-dash-hero">
+        <div class="tf-gauge-col" style="width:60px;">
+          <div class="tf-gauge" style="height:140px;width:24px;">
+            <div class="tf-gauge-mask" style="height:${gaugeMask}%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="tf-dash-hero-label">Patrimônio total hoje</div>
+          <div class="tf-dash-hero-value">${fmtBRL(patrimonioTotal)}</div>
+          <div class="tf-dash-hero-breakdown">
+            <span>Conta: ${fmtBRL(ledgerToday)}</span>
+            <span>Investido: ${fmtBRL(totalAtual)}</span>
+            <span>Reserva: ${fmtBRL(reserveValue)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tf-dash-grid">
+        <div class="tf-chart-box">
+          <div class="tf-chart-title">Patrimônio total — evolução mensal</div>
+          ${lineChart}
+          <div class="tf-legend" style="flex-direction:row; gap:16px; margin-top:4px;">
+            <div class="tf-legend-row" style="flex:none;"><span class="tf-legend-dot" style="background:var(--cold)"></span><span class="tf-legend-label" style="flex:none;">Patrimônio total</span></div>
+            <div class="tf-legend-row" style="flex:none;"><span class="tf-legend-dot" style="background:var(--muted)"></span><span class="tf-legend-label" style="flex:none;">Só conta corrente</span></div>
+          </div>
+          <div class="tf-chart-note">Linha sólida = meses reais, pontilhada = projeção (2027). Investimentos e reserva usam preço/valor de <strong>hoje</strong> aplicado retroativamente à quantidade de cada época (via histórico de transações) — mostra quanto aquele momento valeria hoje, não o valor real da época.</div>
+        </div>
+        <div class="tf-chart-box">
+          <div class="tf-chart-title">Alocação atual do patrimônio</div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            ${buildDonutSVG(pieSegments, 120)}
+            <div class="tf-legend" style="flex:1; margin-top:0;">${legendHtml}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tf-dash-section">
+        <div class="tf-dash-section-title">Indicadores</div>
+        <div class="tf-indicators">
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Gasto médio mensal</div>
+            <div class="tf-indicator-value" style="color:var(--hot)">${fmtBRL(avgGasto)}</div>
+          </div>
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Meses com performance positiva</div>
+            <div class="tf-indicator-value" style="color:${pctPositive>=50?'var(--good)':'var(--warm)'}">${pctPositive.toFixed(0)}%</div>
+          </div>
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Rentabilidade ponderada da carteira</div>
+            <div class="tf-indicator-value" style="color:${rentPonderada>=0?'var(--good)':'var(--hot)'}">${fmtPct(rentPonderada)}</div>
+          </div>
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Rendimento acumulado da reserva</div>
+            <div class="tf-indicator-value" style="color:var(--good)">${fmtBRL(totalRendimentos)}</div>
+          </div>
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Proventos acumulados (carteira)</div>
+            <div class="tf-indicator-value" style="color:var(--good)">${fmtBRL(totalProventos)}</div>
+          </div>
+          <div class="tf-indicator">
+            <div class="tf-indicator-label">Provento médio mensal</div>
+            <div class="tf-indicator-value" style="color:var(--good)">${fmtBRL(provMedioMensal)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    wireTabs();
+  }
+
+  function renderErrorScreen(message){
+    const app = document.getElementById('tf-app');
+    app.innerHTML = `
+      <div class="tf-head">
+        <div><div class="tf-title">Termômetro Financeiro</div></div>
+        ${themeSwitchHtml()}
+      </div>
+      ${tabBarHtml()}
+      <div class="tf-error">⚠ ${message}<br><br><button class="tf-reset" id="tf-error-retry">Tentar novamente</button></div>
+    `;
+    wireTabs();
+    document.getElementById('tf-error-retry').onclick = () => location.reload();
+  }
+
+  function render(){
+    document.title = `Termômetro Financeiro - ${TAB_LABELS[activeTab]}`;
+    if (activeTab === 'diario' && state.error) return renderErrorScreen(state.error);
+    if (activeTab === 'investimentos' && invState.error) return renderErrorScreen(invState.error);
+    if (activeTab === 'dashboard' && (state.error || invState.error)) return renderErrorScreen(state.error || invState.error);
+    if (activeTab === 'investimentos') renderInvestimentos();
+    else if (activeTab === 'dashboard') renderDashboard();
+    else renderDiario();
+  }
+
+  loadTheme();
+  loadData();
+  loadInvestments();
+})();</script>
