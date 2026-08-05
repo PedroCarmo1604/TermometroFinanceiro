@@ -1,15 +1,14 @@
 <title>Termômetro Financeiro</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A1</text></svg>">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root{
-    --bg:#161826;
-    --surface:#232532;
-    --surface-2:#161826;
-    --line:rgba(233,233,237,0.16);
-    --text:#e9e9ed;
-    --muted:#75798c;
-    --cold:#9184d9;
+    --bg:#0F1B2D;
+    --surface:#16243A;
+    --surface-2:#1D2E47;
+    --line:#2A3B57;
+    --text:#E8ECF1;
+    --muted:#8B98AC;
+    --cold:#2DD4BF;
     --warm:#F97316;
     --hot:#EF4444;
     --mid:#F59E0B;
@@ -22,7 +21,7 @@
     --line:#D8E0EA;
     --text:#1A2233;
     --muted:#6B7686;
-    --cold:#5D5294;
+    --cold:#0D9488;
     --warm:#EA580C;
     --hot:#DC2626;
     --mid:#D97706;
@@ -32,7 +31,7 @@
   #tf-app{
     background:var(--bg);
     color:var(--text);
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'IBM Plex Sans', Arial, sans-serif;
     padding:28px clamp(16px, 4vw, 56px) 36px;
     border-radius:14px;
     max-width:1800px;
@@ -89,8 +88,8 @@
     color:var(--muted);
   }
   .tf-title{
-    font-family:'Inter', system-ui, sans-serif;
-    font-weight:500;
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:600;
     font-size:26px;
     letter-spacing:-0.01em;
   }
@@ -142,7 +141,7 @@
     color:var(--text);
     border-radius:7px;
     padding:5px 8px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     text-align:center;
   }
@@ -200,7 +199,7 @@
     line-height:1.3;
   }
   .tf-gauge-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13.5px;
     font-weight:600;
     text-align:center;
@@ -221,12 +220,12 @@
     border-radius:6px;
     padding:4px 8px;
     width:110px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
   }
   .tf-opening{ flex-wrap:wrap; }
   .tf-opening-auto{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     color:var(--text);
     font-weight:600;
   }
@@ -242,7 +241,7 @@
   }
   .tf-hint strong{
     color:var(--cold);
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:600;
   }
   .tf-tabs{
@@ -289,7 +288,7 @@
     margin-bottom:10px;
   }
   .tf-card-ticker{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:700;
     font-size:15px;
   }
@@ -304,7 +303,7 @@
     letter-spacing:.03em;
   }
   .tf-card-rent{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:700;
     font-size:14px;
   }
@@ -322,7 +321,7 @@
     letter-spacing:.03em;
   }
   .tf-card-field-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     margin-top:2px;
   }
@@ -333,7 +332,7 @@
     border-radius:6px;
     padding:3px 6px;
     width:100%;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
     margin-top:2px;
   }
@@ -369,7 +368,7 @@
     border-radius:6px;
     padding:5px 8px;
     font-size:12px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-tx-form label{
     font-size:10px;
@@ -379,12 +378,11 @@
     text-transform:uppercase;
   }
   .tf-tx-form button.confirm{
-    background:transparent;
-    color:var(--cold);
-    border:1px solid var(--cold);
-    font-weight:600;
+    background:var(--cold);
+    color:#06231F;
+    border:none;
+    font-weight:700;
   }
-  .tf-tx-form button.confirm:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-history{
     margin-top:10px;
     font-size:11.5px;
@@ -394,8 +392,8 @@
     justify-content:space-between;
     color:var(--muted);
     padding:3px 0;
-    border-bottom:1px solid var(--line);
-    font-family:'Inter', sans-serif;
+    border-bottom:1px solid #1C2C45;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-history-empty{
     color:var(--muted);
@@ -426,7 +424,7 @@
     text-transform:uppercase;
   }
   .tf-reserve-bar-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:14px;
     font-weight:700;
     margin-top:2px;
@@ -464,9 +462,9 @@
   #tf-toast.toast-err{ border-color:var(--hot); color:var(--hot); }
   .tf-dash-section{ margin-bottom:20px; }
   .tf-dash-section-title{
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'Fraunces', Georgia, serif;
     font-size:15px;
-    font-weight:500;
+    font-weight:600;
     margin-bottom:10px;
   }
   .tf-dash-hero{
@@ -481,7 +479,7 @@
     flex-wrap:wrap;
   }
   .tf-dash-hero-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:28px;
     font-weight:700;
   }
@@ -498,7 +496,7 @@
     flex-wrap:wrap;
     font-size:11.5px;
     color:var(--muted);
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-dash-grid{
     display:grid;
@@ -538,7 +536,7 @@
     flex-shrink:0;
   }
   .tf-legend-label{ flex:1; color:var(--muted); }
-  .tf-legend-value{ font-family:'Inter', sans-serif; color:var(--text); }
+  .tf-legend-value{ font-family:'IBM Plex Mono', monospace; color:var(--text); }
   .tf-indicators{
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
@@ -558,7 +556,7 @@
     margin-bottom:4px;
   }
   .tf-indicator-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:17px;
     font-weight:700;
   }
@@ -586,21 +584,13 @@
   .tf-table th:first-child, .tf-table td:first-child{ text-align:left; }
   .tf-table td{
     padding:3px 4px;
+    border-bottom:1px solid #1C2C45;
     position:relative;
   }
-  .tf-table tbody tr{
-    background:linear-gradient(to right,
-      transparent, var(--line) 32px,
-      var(--line) calc(100% - 32px), transparent) no-repeat bottom/100% 1px;
-  }
-  .tf-table tr.tf-today{
-    background:
-      linear-gradient(color-mix(in srgb, var(--cold) 8%, transparent), color-mix(in srgb, var(--cold) 8%, transparent)) no-repeat 0 0/100% 100%,
-      linear-gradient(to right, transparent, var(--line) 32px, var(--line) calc(100% - 32px), transparent) no-repeat bottom/100% 1px;
-  }
+  .tf-table tr.tf-today td{ background:rgba(45,212,191,0.06); }
   .tf-day{
-    color:var(--cold);
-    font-family:'Inter', sans-serif;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
     width:26px;
   }
   .tf-table input{
@@ -609,7 +599,7 @@
     border:none;
     color:var(--text);
     text-align:right;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
     padding:4px 2px;
     border-radius:5px;
@@ -619,8 +609,8 @@
     background:var(--surface-2);
   }
   .tf-table input.tf-saldo{
-    color:var(--text);
-    font-weight:700;
+    color:var(--muted);
+    font-weight:600;
   }
   /* Indicador de nota: pontinho colorido no canto superior direito da célula */
   .tf-has-note::after{
@@ -729,7 +719,7 @@
     border-radius:7px;
     padding:8px 10px;
     font-size:13px;
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'IBM Plex Sans', Arial, sans-serif;
     resize:vertical;
     min-height:80px;
     margin-bottom:12px;
@@ -742,8 +732,7 @@
     cursor:pointer;
     border:1px solid var(--line);
   }
-  .tf-note-modal-actions .save{ background:transparent; color:var(--cold); border-color:var(--cold); font-weight:600; }
-  .tf-note-modal-actions .save:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
+  .tf-note-modal-actions .save{ background:var(--cold); color:#06231F; border-color:var(--cold); font-weight:700; }
   .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
   .tf-foot-row td{
     font-weight:600;
@@ -772,7 +761,7 @@
     letter-spacing:.04em;
   }
   .tf-pill-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:15px;
     font-weight:600;
     margin-top:3px;
@@ -816,45 +805,7 @@
     font-size:13px;
   }
   .tf-error{ color:var(--hot); }
-
-  .tf-login-card{
-    max-width:340px;
-    margin:40px auto 0;
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:24px 22px;
-  }
-  .tf-login-card .tf-card-field{ margin-bottom:14px; }
-  .tf-login-card input{
-    width:100%;
-    background:var(--surface-2);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:7px;
-    padding:8px 10px;
-    font-size:13px;
-    margin-top:4px;
-    font-family:'Inter', sans-serif;
-  }
-  .tf-login-submit{
-    width:100%;
-    padding:9px;
-    font-size:13px;
-    background:transparent;
-    color:var(--cold);
-    border:1px solid var(--cold);
-    border-radius:7px;
-    font-weight:600;
-    cursor:pointer;
-    margin-top:4px;
-  }
-  .tf-login-submit:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
-  .tf-login-error{
-    color:var(--hot);
-    font-size:12px;
-    margin:-6px 0 12px;
-  }
+  @font-face{ font-family:'Fraunces'; src:local('Georgia'); }
 
   .tf-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
@@ -993,194 +944,6 @@
     if (e.target === document.getElementById('tf-note-modal')) closeNoteModal();
   });
 
-  // ---- Perfis / login local com criptografia ----
-  // Sem servidor: usuário+senha vira uma chave (PBKDF2) que criptografa (AES-GCM) os dados
-  // salvos neste navegador. Não sincroniza entre dispositivos — só protege e separa perfis localmente.
-  const PROFILES_INDEX_KEY = 'tf-profiles';
-  let session = null; // { username, key } depois de login bem-sucedido; null = não logado
-  let loginError = '';
-
-  function bufToBase64(buf){
-    return btoa(String.fromCharCode(...new Uint8Array(buf)));
-  }
-  function base64ToBuf(b64){
-    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  }
-
-  async function deriveKey(password, saltB64){
-    const salt = base64ToBuf(saltB64);
-    const enc = new TextEncoder();
-    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' },
-      baseKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt']
-    );
-  }
-
-  async function encryptJSON(key, obj){
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder();
-    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(obj)));
-    return JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(cipher) });
-  }
-
-  async function decryptJSON(key, raw){
-    const parsed = JSON.parse(raw);
-    const iv = base64ToBuf(parsed.iv);
-    const cipherBuf = base64ToBuf(parsed.data);
-    const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipherBuf);
-    return JSON.parse(new TextDecoder().decode(plainBuf));
-  }
-
-  async function loadProfilesIndex(){
-    try{
-      const res = await window.storage.get(PROFILES_INDEX_KEY, false);
-      return res && res.value ? JSON.parse(res.value) : {};
-    } catch(e){
-      return {};
-    }
-  }
-  async function saveProfilesIndex(profiles){
-    await window.storage.set(PROFILES_INDEX_KEY, JSON.stringify(profiles), false);
-  }
-
-  function userKey(base){
-    return `${base}:${session.username}`;
-  }
-
-  // Normaliza pra evitar que "pedropaulo", "pedro paulo" e "Pedro Paulo" virem contas diferentes
-  function normalizeUsername(raw){
-    return (raw || '').trim().toLowerCase().replace(/\s+/g, '');
-  }
-
-  async function migrateLegacyDataIfPresent(){
-    const profiles = await loadProfilesIndex();
-    if (Object.keys(profiles).length !== 1) return; // só migra pro primeiro perfil criado
-    const legacyMonths = await window.storage.get(STORAGE_KEY, false);
-    const legacyInv = await window.storage.get(INV_STORAGE_KEY, false);
-    if (legacyMonths && legacyMonths.value){
-      const monthsObj = JSON.parse(legacyMonths.value);
-      await window.storage.set(userKey(STORAGE_KEY), await encryptJSON(session.key, monthsObj), false);
-    }
-    if (legacyInv && legacyInv.value){
-      const invObj = JSON.parse(legacyInv.value);
-      await window.storage.set(userKey(INV_STORAGE_KEY), await encryptJSON(session.key, invObj), false);
-    }
-  }
-
-  async function doLogin(){
-    const username = normalizeUsername(document.getElementById('tf-login-user').value);
-    const pass = document.getElementById('tf-login-pass').value;
-    if (!username || !pass){
-      loginError = 'Preencha usuário e senha.';
-      renderLogin();
-      return;
-    }
-    loginError = '';
-    let isNewProfile = false;
-    try{
-      const profiles = await loadProfilesIndex();
-      let profile = profiles[username];
-      isNewProfile = !profile;
-      if (isNewProfile) profile = { salt: bufToBase64(crypto.getRandomValues(new Uint8Array(16))) };
-
-      const key = await deriveKey(pass, profile.salt);
-
-      if (isNewProfile){
-        profiles[username] = profile;
-        await saveProfilesIndex(profiles);
-        // "canário": grava um marcador vazio já criptografado, pra validar a senha em logins futuros
-        await window.storage.set(`${STORAGE_KEY}:${username}`, await encryptJSON(key, {}), false);
-      } else {
-        const res = await window.storage.get(`${STORAGE_KEY}:${username}`, false);
-        if (res && res.value) await decryptJSON(key, res.value); // lança erro se a senha estiver errada
-      }
-
-      session = { username, key };
-    } catch(e){
-      console.error('Falha no login', e);
-      session = null;
-      loginError = 'Usuário ou senha incorretos.';
-      renderLogin();
-      return;
-    }
-
-    if (isNewProfile){
-      try{
-        await migrateLegacyDataIfPresent();
-      } catch(e){
-        console.error('Falha ao migrar dados antigos', e);
-        session = null;
-        loginError = 'Login certo, mas não consegui migrar seus dados antigos automaticamente. Nada foi apagado — tente entrar de novo antes de continuar usando esse usuário.';
-        renderLogin();
-        return;
-      }
-    }
-    await loadData();
-    await loadInvestments();
-  }
-
-  function logout(){
-    session = null;
-    state = { months: {}, loaded: false, error: null };
-    invState = { assets: {}, reserve: {}, loaded: false };
-    activeTab = 'diario';
-    renderLogin();
-  }
-
-  function renderLogin(){
-    const app = document.getElementById('tf-app');
-    if (!window.crypto || !window.crypto.subtle){
-      app.innerHTML = `<div class="tf-error">Este navegador não tem suporte à criptografia necessária pro login (Web Crypto API). Tente atualizar o navegador ou abrir o arquivo em outro.</div>`;
-      return;
-    }
-    app.innerHTML = `
-      <div class="tf-head">
-        <div>
-          <div class="tf-title">Termômetro Financeiro</div>
-          <div class="tf-sub">Entre com usuário e senha pra acessar seus lançamentos</div>
-        </div>
-        ${themeSwitchHtml()}
-      </div>
-      <div class="tf-login-card">
-        <div class="tf-card-field">
-          <div class="tf-card-field-label">Usuário</div>
-          <input id="tf-login-user" type="text" autocomplete="username">
-          <div id="tf-login-user-hint" class="tf-hint" style="margin:4px 0 0;"></div>
-        </div>
-        <div class="tf-card-field">
-          <div class="tf-card-field-label">Senha</div>
-          <input id="tf-login-pass" type="password" autocomplete="current-password">
-        </div>
-        ${loginError ? `<div class="tf-login-error">${loginError}</div>` : ''}
-        <button class="tf-login-submit" id="tf-login-submit">Entrar</button>
-        <div class="tf-hint" style="margin-top:12px;">Primeira vez? Só digite um usuário e senha novos — isso cria seu perfil. Os dados ficam criptografados neste navegador; não tem como recuperar se você esquecer a senha.</div>
-      </div>
-    `;
-    wireThemeSwitch();
-    document.getElementById('tf-login-submit').onclick = doLogin;
-    document.getElementById('tf-login-pass').onkeydown = (ev) => { if (ev.key === 'Enter') doLogin(); };
-    const userInput = document.getElementById('tf-login-user');
-    const userHint = document.getElementById('tf-login-user-hint');
-    let userHintTimer;
-    userInput.onkeydown = (ev) => { if (ev.key === 'Enter') document.getElementById('tf-login-pass').focus(); };
-    userInput.oninput = () => {
-      clearTimeout(userHintTimer);
-      userHintTimer = setTimeout(async () => {
-        const uname = normalizeUsername(userInput.value);
-        if (!uname){ userHint.textContent = ''; return; }
-        const profiles = await loadProfilesIndex();
-        userHint.textContent = profiles[uname]
-          ? `✓ Perfil "${uname}" já existe — vai pedir a senha desse perfil.`
-          : `→ "${uname}" ainda não existe — isso vai criar um perfil novo.`;
-      }, 300);
-    };
-    userInput.focus();
-  }
-
   const STORAGE_KEY = 'months-data';
   const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -1295,8 +1058,7 @@
     } catch(e){
       applyTheme('dark');
     }
-    if (session) render();
-    else renderLogin();
+    if (state.loaded || invState.loaded) render();
   }
 
   async function toggleTheme(){
@@ -1318,15 +1080,6 @@
   function wireThemeSwitch(){
     const btn = document.getElementById('tf-theme-toggle');
     if (btn) btn.onclick = toggleTheme;
-    const logoutBtn = document.getElementById('tf-logout-btn');
-    if (logoutBtn) logoutBtn.onclick = logout;
-  }
-  function sessionBarHtml(){
-    const safeUsername = session ? session.username.replace(/</g,'&lt;') : '';
-    return `<div style="display:flex;align-items:center;gap:10px;">
-      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeUsername}</span><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
-      ${themeSwitchHtml()}
-    </div>`;
   }
 
   function fmtBRL(v){
@@ -1378,8 +1131,8 @@
 
   async function loadData(){
     try{
-      const res = await window.storage.get(userKey(STORAGE_KEY), false);
-      state.months = res && res.value ? await decryptJSON(session.key, res.value) : {};
+      const res = await window.storage.get(STORAGE_KEY, false);
+      state.months = res && res.value ? JSON.parse(res.value) : {};
       state.loaded = true;
     } catch(e){
       console.error('Falha ao carregar lançamentos', e);
@@ -1401,7 +1154,7 @@
 
   async function saveData(silent = false){
     try{
-      await window.storage.set(userKey(STORAGE_KEY), await encryptJSON(session.key, state.months), false);
+      await window.storage.set(STORAGE_KEY, JSON.stringify(state.months), false);
       if (!silent) showToast('Lançamento salvo');
     } catch(e){
       console.error('Falha ao salvar', e);
@@ -1452,8 +1205,8 @@
   // ---- Investimentos ----
   async function loadInvestments(){
     try{
-      const res = await window.storage.get(userKey(INV_STORAGE_KEY), false);
-      invState = res && res.value ? await decryptJSON(session.key, res.value) : { assets:{}, reserve:{} };
+      const res = await window.storage.get(INV_STORAGE_KEY, false);
+      invState = res && res.value ? JSON.parse(res.value) : { assets:{}, reserve:{} };
     } catch(e){
       console.error('Falha ao carregar investimentos', e);
       invState = { assets:{}, reserve:{}, loaded: true, error: 'Não foi possível carregar seus investimentos. Seus dados salvos não foram apagados — se isso persistir, restaure a partir de um backup exportado.' };
@@ -1509,7 +1262,7 @@
   async function saveInvestments(silent = false){
     try{
       const toSave = { assets: invState.assets, reserve: invState.reserve };
-      await window.storage.set(userKey(INV_STORAGE_KEY), await encryptJSON(session.key, toSave), false);
+      await window.storage.set(INV_STORAGE_KEY, JSON.stringify(toSave), false);
       if (!silent) showToast('Investimentos salvos');
     } catch(e){
       console.error('Falha ao salvar investimentos', e);
@@ -1903,7 +1656,7 @@
           <div class="tf-title">Termômetro Financeiro</div>
           <div class="tf-sub">Lançamento diário a partir de setembro/2024 — entradas, saídas e gasto do dia a dia</div>
         </div>
-        ${sessionBarHtml()}
+        ${themeSwitchHtml()}
       </div>
       ${tabBarHtml()}
 
@@ -2213,7 +1966,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
             <div>
               <span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Proventos recebidos</span>
-              <span style="font-family:'Inter',sans-serif;font-weight:700;color:var(--good);font-size:14px;margin-left:10px;">${fmtBRL(totalProv)}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--good);font-size:14px;margin-left:10px;">${fmtBRL(totalProv)}</span>
               <span style="font-size:10.5px;color:var(--muted);margin-left:6px;">· Yield s/ custo: ${fmtPct(yieldOnCost)}</span>
             </div>
           </div>
@@ -2276,7 +2029,7 @@
           <div class="tf-title">Termômetro Financeiro</div>
           <div class="tf-sub">Investimentos — carteira, aportes e reserva</div>
         </div>
-        ${sessionBarHtml()}
+        ${themeSwitchHtml()}
       </div>
       ${tabBarHtml()}
 
@@ -2524,7 +2277,7 @@
     let labels = '';
     points.forEach((p,i) => {
       if (i % labelEvery === 0 || i === n-1){
-        labels += `<text x="${xAt(i)}" y="${height-4}" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="Inter, sans-serif">${MONTH_NAMES[p.m].slice(0,3)}/${String(p.y).slice(2)}</text>`;
+        labels += `<text x="${xAt(i)}" y="${height-4}" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${MONTH_NAMES[p.m].slice(0,3)}/${String(p.y).slice(2)}</text>`;
       }
     });
 
@@ -2667,7 +2420,7 @@
           <div class="tf-title">Termômetro Financeiro</div>
           <div class="tf-sub">Dashboard — visão consolidada de diário, investimentos e reserva</div>
         </div>
-        ${sessionBarHtml()}
+        ${themeSwitchHtml()}
       </div>
       ${tabBarHtml()}
 
@@ -2746,7 +2499,7 @@
     app.innerHTML = `
       <div class="tf-head">
         <div><div class="tf-title">Termômetro Financeiro</div></div>
-        ${sessionBarHtml()}
+        ${themeSwitchHtml()}
       </div>
       ${tabBarHtml()}
       <div class="tf-error">⚠ ${message}<br><br><button class="tf-reset" id="tf-error-retry">Tentar novamente</button></div>
@@ -2766,4 +2519,6 @@
   }
 
   loadTheme();
+  loadData();
+  loadInvestments();
 })();</script>

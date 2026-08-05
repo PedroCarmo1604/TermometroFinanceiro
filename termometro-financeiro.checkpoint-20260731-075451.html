@@ -1,15 +1,14 @@
 <title>Termômetro Financeiro</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A1</text></svg>">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root{
-    --bg:#161826;
-    --surface:#232532;
-    --surface-2:#161826;
-    --line:rgba(233,233,237,0.16);
-    --text:#e9e9ed;
-    --muted:#75798c;
-    --cold:#9184d9;
+    --bg:#0F1B2D;
+    --surface:#16243A;
+    --surface-2:#1D2E47;
+    --line:#2A3B57;
+    --text:#E8ECF1;
+    --muted:#8B98AC;
+    --cold:#2DD4BF;
     --warm:#F97316;
     --hot:#EF4444;
     --mid:#F59E0B;
@@ -22,7 +21,7 @@
     --line:#D8E0EA;
     --text:#1A2233;
     --muted:#6B7686;
-    --cold:#5D5294;
+    --cold:#0D9488;
     --warm:#EA580C;
     --hot:#DC2626;
     --mid:#D97706;
@@ -32,7 +31,7 @@
   #tf-app{
     background:var(--bg);
     color:var(--text);
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'IBM Plex Sans', Arial, sans-serif;
     padding:28px clamp(16px, 4vw, 56px) 36px;
     border-radius:14px;
     max-width:1800px;
@@ -89,8 +88,8 @@
     color:var(--muted);
   }
   .tf-title{
-    font-family:'Inter', system-ui, sans-serif;
-    font-weight:500;
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:600;
     font-size:26px;
     letter-spacing:-0.01em;
   }
@@ -142,7 +141,7 @@
     color:var(--text);
     border-radius:7px;
     padding:5px 8px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     text-align:center;
   }
@@ -200,7 +199,7 @@
     line-height:1.3;
   }
   .tf-gauge-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13.5px;
     font-weight:600;
     text-align:center;
@@ -221,12 +220,12 @@
     border-radius:6px;
     padding:4px 8px;
     width:110px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
   }
   .tf-opening{ flex-wrap:wrap; }
   .tf-opening-auto{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     color:var(--text);
     font-weight:600;
   }
@@ -242,7 +241,7 @@
   }
   .tf-hint strong{
     color:var(--cold);
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:600;
   }
   .tf-tabs{
@@ -289,7 +288,7 @@
     margin-bottom:10px;
   }
   .tf-card-ticker{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:700;
     font-size:15px;
   }
@@ -304,7 +303,7 @@
     letter-spacing:.03em;
   }
   .tf-card-rent{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-weight:700;
     font-size:14px;
   }
@@ -322,7 +321,7 @@
     letter-spacing:.03em;
   }
   .tf-card-field-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:13px;
     margin-top:2px;
   }
@@ -333,7 +332,7 @@
     border-radius:6px;
     padding:3px 6px;
     width:100%;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
     margin-top:2px;
   }
@@ -369,7 +368,7 @@
     border-radius:6px;
     padding:5px 8px;
     font-size:12px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-tx-form label{
     font-size:10px;
@@ -379,12 +378,11 @@
     text-transform:uppercase;
   }
   .tf-tx-form button.confirm{
-    background:transparent;
-    color:var(--cold);
-    border:1px solid var(--cold);
-    font-weight:600;
+    background:var(--cold);
+    color:#06231F;
+    border:none;
+    font-weight:700;
   }
-  .tf-tx-form button.confirm:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-history{
     margin-top:10px;
     font-size:11.5px;
@@ -394,8 +392,8 @@
     justify-content:space-between;
     color:var(--muted);
     padding:3px 0;
-    border-bottom:1px solid var(--line);
-    font-family:'Inter', sans-serif;
+    border-bottom:1px solid #1C2C45;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-history-empty{
     color:var(--muted);
@@ -426,7 +424,7 @@
     text-transform:uppercase;
   }
   .tf-reserve-bar-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:14px;
     font-weight:700;
     margin-top:2px;
@@ -464,9 +462,9 @@
   #tf-toast.toast-err{ border-color:var(--hot); color:var(--hot); }
   .tf-dash-section{ margin-bottom:20px; }
   .tf-dash-section-title{
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'Fraunces', Georgia, serif;
     font-size:15px;
-    font-weight:500;
+    font-weight:600;
     margin-bottom:10px;
   }
   .tf-dash-hero{
@@ -481,7 +479,7 @@
     flex-wrap:wrap;
   }
   .tf-dash-hero-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:28px;
     font-weight:700;
   }
@@ -498,7 +496,7 @@
     flex-wrap:wrap;
     font-size:11.5px;
     color:var(--muted);
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-dash-grid{
     display:grid;
@@ -538,7 +536,7 @@
     flex-shrink:0;
   }
   .tf-legend-label{ flex:1; color:var(--muted); }
-  .tf-legend-value{ font-family:'Inter', sans-serif; color:var(--text); }
+  .tf-legend-value{ font-family:'IBM Plex Mono', monospace; color:var(--text); }
   .tf-indicators{
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
@@ -558,7 +556,7 @@
     margin-bottom:4px;
   }
   .tf-indicator-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:17px;
     font-weight:700;
   }
@@ -586,21 +584,13 @@
   .tf-table th:first-child, .tf-table td:first-child{ text-align:left; }
   .tf-table td{
     padding:3px 4px;
+    border-bottom:1px solid #1C2C45;
     position:relative;
   }
-  .tf-table tbody tr{
-    background:linear-gradient(to right,
-      transparent, var(--line) 32px,
-      var(--line) calc(100% - 32px), transparent) no-repeat bottom/100% 1px;
-  }
-  .tf-table tr.tf-today{
-    background:
-      linear-gradient(color-mix(in srgb, var(--cold) 8%, transparent), color-mix(in srgb, var(--cold) 8%, transparent)) no-repeat 0 0/100% 100%,
-      linear-gradient(to right, transparent, var(--line) 32px, var(--line) calc(100% - 32px), transparent) no-repeat bottom/100% 1px;
-  }
+  .tf-table tr.tf-today td{ background:rgba(45,212,191,0.06); }
   .tf-day{
-    color:var(--cold);
-    font-family:'Inter', sans-serif;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
     width:26px;
   }
   .tf-table input{
@@ -609,7 +599,7 @@
     border:none;
     color:var(--text);
     text-align:right;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:12.5px;
     padding:4px 2px;
     border-radius:5px;
@@ -619,8 +609,8 @@
     background:var(--surface-2);
   }
   .tf-table input.tf-saldo{
-    color:var(--text);
-    font-weight:700;
+    color:var(--muted);
+    font-weight:600;
   }
   /* Indicador de nota: pontinho colorido no canto superior direito da célula */
   .tf-has-note::after{
@@ -729,7 +719,7 @@
     border-radius:7px;
     padding:8px 10px;
     font-size:13px;
-    font-family:'Inter', system-ui, sans-serif;
+    font-family:'IBM Plex Sans', Arial, sans-serif;
     resize:vertical;
     min-height:80px;
     margin-bottom:12px;
@@ -742,8 +732,7 @@
     cursor:pointer;
     border:1px solid var(--line);
   }
-  .tf-note-modal-actions .save{ background:transparent; color:var(--cold); border-color:var(--cold); font-weight:600; }
-  .tf-note-modal-actions .save:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
+  .tf-note-modal-actions .save{ background:var(--cold); color:#06231F; border-color:var(--cold); font-weight:700; }
   .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
   .tf-foot-row td{
     font-weight:600;
@@ -772,7 +761,7 @@
     letter-spacing:.04em;
   }
   .tf-pill-value{
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
     font-size:15px;
     font-weight:600;
     margin-top:3px;
@@ -816,6 +805,7 @@
     font-size:13px;
   }
   .tf-error{ color:var(--hot); }
+  @font-face{ font-family:'Fraunces'; src:local('Georgia'); }
 
   .tf-login-card{
     max-width:340px;
@@ -835,21 +825,20 @@
     padding:8px 10px;
     font-size:13px;
     margin-top:4px;
-    font-family:'Inter', sans-serif;
+    font-family:'IBM Plex Mono', monospace;
   }
   .tf-login-submit{
     width:100%;
     padding:9px;
     font-size:13px;
-    background:transparent;
-    color:var(--cold);
-    border:1px solid var(--cold);
+    background:var(--cold);
+    color:#06231F;
+    border:none;
     border-radius:7px;
-    font-weight:600;
+    font-weight:700;
     cursor:pointer;
     margin-top:4px;
   }
-  .tf-login-submit:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-login-error{
     color:var(--hot);
     font-size:12px;
@@ -2213,7 +2202,7 @@
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
             <div>
               <span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Proventos recebidos</span>
-              <span style="font-family:'Inter',sans-serif;font-weight:700;color:var(--good);font-size:14px;margin-left:10px;">${fmtBRL(totalProv)}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--good);font-size:14px;margin-left:10px;">${fmtBRL(totalProv)}</span>
               <span style="font-size:10.5px;color:var(--muted);margin-left:6px;">· Yield s/ custo: ${fmtPct(yieldOnCost)}</span>
             </div>
           </div>
@@ -2524,7 +2513,7 @@
     let labels = '';
     points.forEach((p,i) => {
       if (i % labelEvery === 0 || i === n-1){
-        labels += `<text x="${xAt(i)}" y="${height-4}" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="Inter, sans-serif">${MONTH_NAMES[p.m].slice(0,3)}/${String(p.y).slice(2)}</text>`;
+        labels += `<text x="${xAt(i)}" y="${height-4}" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">${MONTH_NAMES[p.m].slice(0,3)}/${String(p.y).slice(2)}</text>`;
       }
     });
 
