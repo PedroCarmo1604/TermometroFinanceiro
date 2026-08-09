@@ -29,18 +29,21 @@
     --good:#059669;
   }
   *{box-sizing:border-box;}
+  html, body{
+    background:var(--bg);
+    margin:0;
+  }
   #tf-app{
     background:var(--bg);
     color:var(--text);
     font-family:'Inter', system-ui, sans-serif;
     padding:28px clamp(16px, 4vw, 56px) 36px;
-    border-radius:14px;
     max-width:1800px;
     width:100%;
     margin:0 auto;
   }
   @media (max-width: 640px){
-    #tf-app{ padding:16px 12px 24px; border-radius:0; }
+    #tf-app{ padding:16px 12px 24px; }
     .tf-title{ font-size:21px; }
   }
   .tf-head{
@@ -605,22 +608,26 @@
   }
   .tf-table input{
     width:100%;
-    background:transparent;
-    border:none;
+    background:var(--bg);
+    border:1px solid var(--line);
     color:var(--text);
     text-align:right;
     font-family:'Inter', sans-serif;
     font-size:12.5px;
-    padding:4px 2px;
-    border-radius:5px;
+    padding:4px 6px;
+    border-radius:6px;
   }
   .tf-table input:focus{
     outline:none;
-    background:var(--surface-2);
+    border-color:var(--cold);
+    background:var(--surface);
   }
   .tf-table input.tf-saldo{
     color:var(--text);
     font-weight:700;
+    background:transparent;
+    border:none;
+    padding:4px 2px;
   }
   /* Indicador de nota: pontinho colorido no canto superior direito da célula */
   .tf-has-note::after{
@@ -999,6 +1006,7 @@
   const PROFILES_INDEX_KEY = 'tf-profiles';
   let session = null; // { username, key } depois de login bem-sucedido; null = não logado
   let loginError = '';
+  let authTab = 'login'; // 'login' | 'signup' — aba ativa na tela de entrar/criar conta
 
   function bufToBase64(buf){
     return btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -1074,8 +1082,15 @@
   async function doLogin(){
     const username = normalizeUsername(document.getElementById('tf-login-user').value);
     const pass = document.getElementById('tf-login-pass').value;
+    const passConfirmEl = document.getElementById('tf-login-pass-confirm');
+    const passConfirm = passConfirmEl ? passConfirmEl.value : null;
     if (!username || !pass){
       loginError = 'Preencha usuário e senha.';
+      renderLogin();
+      return;
+    }
+    if (authTab === 'signup' && pass !== passConfirm){
+      loginError = 'As senhas não coincidem.';
       renderLogin();
       return;
     }
@@ -1084,7 +1099,18 @@
     try{
       const profiles = await loadProfilesIndex();
       let profile = profiles[username];
-      isNewProfile = !profile;
+      const exists = !!profile;
+      if (authTab === 'signup' && exists){
+        loginError = `O usuário "${username}" já existe. Use a aba "Entrar".`;
+        renderLogin();
+        return;
+      }
+      if (authTab === 'login' && !exists){
+        loginError = `O usuário "${username}" ainda não existe. Use a aba "Criar conta".`;
+        renderLogin();
+        return;
+      }
+      isNewProfile = !exists;
       if (isNewProfile) profile = { salt: bufToBase64(crypto.getRandomValues(new Uint8Array(16))) };
 
       const key = await deriveKey(pass, profile.salt);
@@ -1137,15 +1163,20 @@
       app.innerHTML = `<div class="tf-error">Este navegador não tem suporte à criptografia necessária pro login (Web Crypto API). Tente atualizar o navegador ou abrir o arquivo em outro.</div>`;
       return;
     }
+    const isSignup = authTab === 'signup';
     app.innerHTML = `
       <div class="tf-head">
         <div>
           <div class="tf-title">Termômetro Financeiro</div>
-          <div class="tf-sub">Entre com usuário e senha pra acessar seus lançamentos</div>
+          <div class="tf-sub">${isSignup ? 'Crie seu perfil — leva menos de um minuto' : 'Entre com usuário e senha pra acessar seus lançamentos'}</div>
         </div>
         ${themeSwitchHtml()}
       </div>
       <div class="tf-login-card">
+        <div style="display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+          <button id="tf-authtab-login" style="flex:1;padding:7px 12px;font-size:13px;background:transparent;border:none;cursor:pointer;font-family:inherit;${!isSignup ? 'color:var(--cold);box-shadow:inset 0 0 0 1px var(--cold);' : 'color:var(--muted);'}">Entrar</button>
+          <button id="tf-authtab-signup" style="flex:1;padding:7px 12px;font-size:13px;background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;font-family:inherit;${isSignup ? 'color:var(--cold);box-shadow:inset 0 0 0 1px var(--cold);' : 'color:var(--muted);'}">Criar conta</button>
+        </div>
         <div class="tf-card-field">
           <div class="tf-card-field-label">Usuário</div>
           <input id="tf-login-user" type="text" autocomplete="username">
@@ -1153,16 +1184,27 @@
         </div>
         <div class="tf-card-field">
           <div class="tf-card-field-label">Senha</div>
-          <input id="tf-login-pass" type="password" autocomplete="current-password">
+          <input id="tf-login-pass" type="password" autocomplete="${isSignup ? 'new-password' : 'current-password'}">
         </div>
+        ${isSignup ? `
+        <div class="tf-card-field">
+          <div class="tf-card-field-label">Repita a senha</div>
+          <input id="tf-login-pass-confirm" type="password" autocomplete="new-password">
+        </div>` : ''}
         ${loginError ? `<div class="tf-login-error">${loginError}</div>` : ''}
-        <button class="tf-login-submit" id="tf-login-submit">Entrar</button>
-        <div class="tf-hint" style="margin-top:12px;">Primeira vez? Só digite um usuário e senha novos — isso cria seu perfil. Os dados ficam criptografados neste navegador; não tem como recuperar se você esquecer a senha.</div>
+        <button class="tf-login-submit" id="tf-login-submit">${isSignup ? 'Criar conta' : 'Entrar'}</button>
+        <div class="tf-hint" style="margin-top:12px;">${isSignup
+          ? 'Os dados ficam criptografados neste navegador; não tem como recuperar se você esquecer a senha.'
+          : 'Ainda não tem perfil? Use a aba "Criar conta" acima.'}</div>
       </div>
     `;
     wireThemeSwitch();
+    document.getElementById('tf-authtab-login').onclick = () => { authTab = 'login'; loginError = ''; renderLogin(); };
+    document.getElementById('tf-authtab-signup').onclick = () => { authTab = 'signup'; loginError = ''; renderLogin(); };
     document.getElementById('tf-login-submit').onclick = doLogin;
-    document.getElementById('tf-login-pass').onkeydown = (ev) => { if (ev.key === 'Enter') doLogin(); };
+    const passConfirmEl = document.getElementById('tf-login-pass-confirm');
+    document.getElementById('tf-login-pass').onkeydown = (ev) => { if (ev.key === 'Enter'){ if (passConfirmEl) passConfirmEl.focus(); else doLogin(); } };
+    if (passConfirmEl) passConfirmEl.onkeydown = (ev) => { if (ev.key === 'Enter') doLogin(); };
     const userInput = document.getElementById('tf-login-user');
     const userHint = document.getElementById('tf-login-user-hint');
     let userHintTimer;
@@ -1173,12 +1215,72 @@
         const uname = normalizeUsername(userInput.value);
         if (!uname){ userHint.textContent = ''; return; }
         const profiles = await loadProfilesIndex();
-        userHint.textContent = profiles[uname]
-          ? `✓ Perfil "${uname}" já existe — vai pedir a senha desse perfil.`
-          : `→ "${uname}" ainda não existe — isso vai criar um perfil novo.`;
+        const exists = !!profiles[uname];
+        if (isSignup){
+          userHint.textContent = exists
+            ? `⚠ "${uname}" já existe — troque pra aba "Entrar".`
+            : `✓ "${uname}" está livre.`;
+        } else {
+          userHint.textContent = exists
+            ? `✓ Perfil "${uname}" encontrado.`
+            : `⚠ "${uname}" ainda não existe — troque pra aba "Criar conta".`;
+        }
       }, 300);
     };
     userInput.focus();
+  }
+
+  function renderLanding(){
+    const app = document.getElementById('tf-app');
+    app.innerHTML = `
+      <div class="tf-head">
+        <div><div class="tf-title">Termômetro Financeiro</div></div>
+        ${themeSwitchHtml()}
+      </div>
+      <section style="max-width:520px;margin:20px auto 0;text-align:center;">
+        <h1 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:34px;line-height:1.15;letter-spacing:-0.015em;margin:0 0 10px;color:var(--text);text-wrap:balance;">Clareza sobre o seu dinheiro, todo santo dia.</h1>
+        <p style="font-size:15px;line-height:1.55;color:var(--muted);margin:0 0 20px;">O Termômetro Financeiro é uma planilha viva: você lança o que entra, o que sai e o que gasta no dia a dia — e ele calcula o saldo sozinho, sem aba lotada de fórmula.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button id="tf-landing-signup" class="tf-login-submit" style="width:auto;padding:8px 18px;margin-top:0;">Criar meu perfil</button>
+          <button id="tf-landing-login" style="padding:8px 18px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:7px;cursor:pointer;font-family:inherit;font-size:13px;">Já tenho perfil</button>
+        </div>
+      </section>
+
+      <section style="max-width:720px;margin:36px auto 0;">
+        <h6 style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cold);text-align:center;margin:0 0 14px;">O que você tem aqui</h6>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+          <div class="tf-card">
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cold);">Diário</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:16px;margin-top:4px;color:var(--text);">Três campos, todo dia</div>
+            <p style="margin:6px 0 0;font-size:12.5px;color:var(--muted);">Entrada, saída e gasto do dia — o saldo é calculado sozinho, sem fórmula pra decorar.</p>
+          </div>
+          <div class="tf-card">
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cold);">Termômetro</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:16px;margin-top:4px;color:var(--text);">A temperatura do mês, de relance</div>
+            <p style="margin:6px 0 0;font-size:12.5px;color:var(--muted);">Uma escala visual mostra se o saldo está esquentando ou esfriando, dia após dia.</p>
+          </div>
+          <div class="tf-card">
+            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cold);">Investimentos</div>
+            <div style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:16px;margin-top:4px;color:var(--text);">Patrimônio e reserva juntos</div>
+            <p style="margin:6px 0 0;font-size:12.5px;color:var(--muted);">Aportes, proventos e reserva de emergência ao lado do seu dia a dia financeiro.</p>
+          </div>
+        </div>
+      </section>
+
+      <section style="max-width:560px;margin:36px auto 0;padding-bottom:40px;">
+        <div class="tf-card" style="text-align:center;">
+          <div style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:19px;color:var(--text);">Pronto pra começar?</div>
+          <p style="margin:6px 0 14px;color:var(--muted);font-size:13px;">Leva menos de um minuto pra criar seu perfil e começar a lançar o dia a dia.</p>
+          <button id="tf-landing-cta" class="tf-login-submit" style="width:auto;padding:8px 18px;margin-top:0;">Criar meu perfil</button>
+        </div>
+      </section>
+    `;
+    wireThemeSwitch();
+    const goLogin = () => { authTab = 'login'; renderLogin(); };
+    const goSignup = () => { authTab = 'signup'; renderLogin(); };
+    document.getElementById('tf-landing-signup').onclick = goSignup;
+    document.getElementById('tf-landing-login').onclick = goLogin;
+    document.getElementById('tf-landing-cta').onclick = goSignup;
   }
 
   const STORAGE_KEY = 'months-data';
@@ -1296,7 +1398,7 @@
       applyTheme('dark');
     }
     if (session) render();
-    else renderLogin();
+    else renderLanding();
   }
 
   async function toggleTheme(){
