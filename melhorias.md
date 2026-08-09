@@ -34,6 +34,10 @@ Depois de confirmar que o perfil `pedropaulo` estava com os dados corretos (migr
 - **3 perfis vazios** criados por variações de digitação do mesmo usuário (`pedro carmo`, `pedrocarmo`, `pedro paulo`) — removidos, sem conter dado real algum.
 - **Dados antigos em texto puro** (`months-data` e `investments-data` sem prefixo de usuário, de antes do login existir) — já estavam migrados/criptografados no perfil `pedropaulo`, então essa cópia sem senha era redundante e reduzia o propósito da criptografia. Backup salvo em [termometro-legacy-backup.json](termometro-legacy-backup.json) antes de remover, verificado byte a byte (comparação de tamanho ao vivo no navegador vs. arquivo baixado) pra garantir que nada se perdeu.
 
+## Em revisão (ainda não aplicado ao projeto principal)
+
+- **Landing + Login com abas Entrar/Criar conta** *(31/07/2026)* — a partir do handoff `Redesign TermometroFinanceiro-handoff.zip` (mesmo projeto Nocturne do claude.ai/design), construída uma página de apresentação nova (Landing, texto ajustado pra tom de uso pessoal em vez de "abrir pra outras pessoas") e o login ganhou abas explícitas "Entrar"/"Criar conta" + confirmação de senha no cadastro (evita erro de digitação silencioso — a mesma classe de bug que já nos mordeu com a normalização de usuário). Diário/Investimentos/Dashboard foram reaproveitados do app real, sem reimplementar a versão simplificada do mockup. Publicado como Artifact separado pra revisão — link enviado no chat. Só aplicamos no `termometro-financeiro.html` principal se você aprovar.
+
 ## Backlog (identificado, não priorizado ainda)
 
 **Viabilidade para testes assistidos**
