@@ -1,7 +1,7 @@
 <title>Termômetro Financeiro</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A1</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js" integrity="sha384-qafw21c/iciq0VXsi9FzkfoQv5I/V0iqE4lSNcKXPnW9/UTJLnv5CcN4FHxVLnKg" crossorigin="anonymous"></script>
 <style>
   :root{
     --bg:#161826;
@@ -913,7 +913,7 @@
 <div id="tf-delete-account-modal">
   <div class="tf-note-modal-box">
     <label>Excluir todos os meus dados</label>
-    <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:0 0 12px;">Isso apaga <strong>todos</strong> os lançamentos, notas e investimentos deste perfil, sem volta — não tem como recuperar depois. Pra confirmar, digite o usuário <strong id="tf-delete-account-username" style="color:var(--text);"></strong> abaixo.</p>
+    <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:0 0 12px;">Isso apaga <strong>todos</strong> os lançamentos, notas e investimentos desta conta, sem volta — não tem como recuperar depois. Pra confirmar, digite o e-mail <strong id="tf-delete-account-username" style="color:var(--text);"></strong> abaixo.</p>
     <input id="tf-delete-account-confirm-input" type="text" autocomplete="off" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;">
     <div id="tf-delete-account-error" style="color:var(--hot);font-size:12px;margin-bottom:8px;min-height:14px;"></div>
     <div class="tf-note-modal-actions">
@@ -926,8 +926,8 @@
 
 <script>
 (function(){
-  // Fallback: fora do host que injeta window.storage (extensão/app), usa localStorage
-  // pra persistir mesmo assim — sem isso, todo saveData()/saveInvestments() falha silenciosamente.
+  // Fallback: fora do host que injeta window.storage (extensão/app), usa localStorage.
+  // Usado só pra preferência de tema (dispositivo) — lançamentos/investimentos vêm do Supabase.
   if (!window.storage){
     window.storage = {
       async get(key){
@@ -935,9 +935,6 @@
       },
       async set(key, value){
         localStorage.setItem('tf-storage:' + key, value);
-      },
-      async remove(key){
-        localStorage.removeItem('tf-storage:' + key);
       }
     };
   }
@@ -1116,7 +1113,7 @@
 
   function openDeleteAccountModal(){
     if (!session) return;
-    document.getElementById('tf-delete-account-username').textContent = session.username;
+    document.getElementById('tf-delete-account-username').textContent = session.email;
     document.getElementById('tf-delete-account-confirm-input').value = '';
     document.getElementById('tf-delete-account-error').textContent = '';
     document.getElementById('tf-delete-account-modal').classList.add('open');
@@ -1132,53 +1129,42 @@
     if (!session) return;
     const input = document.getElementById('tf-delete-account-confirm-input');
     const errorEl = document.getElementById('tf-delete-account-error');
-    if (normalizeUsername(input.value) !== session.username){
-      errorEl.textContent = 'Digite exatamente o seu usuário pra confirmar.';
+    if (input.value.trim().toLowerCase() !== session.email.toLowerCase()){
+      errorEl.textContent = 'Digite exatamente o seu e-mail pra confirmar.';
       return;
     }
     closeDeleteAccountModal();
     await deleteAllMyData();
   }
 
-  // Exclusão a pedido do usuário (LGPD): remove o perfil do índice — sem ele, a chave
-  // de criptografia nunca mais pode ser derivada, então os dados antigos ficam
-  // permanentemente indecifráveis mesmo que algum resíduo do host não seja removido de fato.
+  // Exclusão a pedido do usuário (LGPD): zera a linha na nuvem (dados) — a conta de login em si
+  // (auth.users) continua existindo, exclusão de conta de verdade fica pro backlog (exige uma
+  // function no servidor com a service_role key, que nunca pode ficar exposta no cliente).
   async function deleteAllMyData(){
-    const username = session.username;
     try{
-      if (typeof window.storage.remove === 'function'){
-        await window.storage.remove(userKey(STORAGE_KEY), false);
-        await window.storage.remove(userKey(INV_STORAGE_KEY), false);
-      } else {
-        await window.storage.set(userKey(STORAGE_KEY), '', false);
-        await window.storage.set(userKey(INV_STORAGE_KEY), '', false);
-      }
+      const { error } = await supabase.from('user_data')
+        .update({ months_data: {}, investments_data: {} })
+        .eq('user_id', session.user.id);
+      if (error) throw error;
     } catch(e){
-      console.error('Falha ao apagar dados criptografados', e);
+      console.error('Falha ao apagar dados', e);
+      showToast('Falha ao apagar seus dados — tente de novo', 'err');
+      return;
     }
-    try{
-      const profiles = await loadProfilesIndex();
-      delete profiles[username];
-      await saveProfilesIndex(profiles);
-    } catch(e){
-      console.error('Falha ao remover perfil do índice', e);
-    }
-    logout();
+    state.months = {};
+    invState = { assets: {}, reserve: JSON.parse(JSON.stringify(SEED_INVESTMENTS.reserve)), loaded: true };
+    render();
     showToast('Todos os seus dados foram apagados');
   }
 
   function renderLogin(){
     const app = document.getElementById('tf-app');
-    if (!window.crypto || !window.crypto.subtle){
-      app.innerHTML = `<div class="tf-error">Este navegador não tem suporte à criptografia necessária pro login (Web Crypto API). Tente atualizar o navegador ou abrir o arquivo em outro.</div>`;
-      return;
-    }
     const isSignup = authTab === 'signup';
     app.innerHTML = `
       <div class="tf-head">
         <div>
           <div class="tf-title">Termômetro Financeiro</div>
-          <div class="tf-sub">${isSignup ? 'Crie seu perfil — leva menos de um minuto' : 'Entre com usuário e senha pra acessar seus lançamentos'}</div>
+          <div class="tf-sub">${isSignup ? 'Crie sua conta — leva menos de um minuto' : 'Entre com e-mail e senha pra acessar seus lançamentos'}</div>
         </div>
         ${themeSwitchHtml()}
       </div>
@@ -1188,9 +1174,8 @@
           <button id="tf-authtab-signup" style="flex:1;padding:7px 12px;font-size:13px;background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;font-family:inherit;${isSignup ? 'color:var(--cold);box-shadow:inset 0 0 0 1px var(--cold);' : 'color:var(--muted);'}">Criar conta</button>
         </div>
         <div class="tf-card-field">
-          <div class="tf-card-field-label">Usuário</div>
-          <input id="tf-login-user" type="text" autocomplete="username">
-          <div id="tf-login-user-hint" class="tf-hint" style="margin:4px 0 0;"></div>
+          <div class="tf-card-field-label">E-mail</div>
+          <input id="tf-login-email" type="email" autocomplete="email">
         </div>
         <div class="tf-card-field">
           <div class="tf-card-field-label">Senha</div>
@@ -1204,8 +1189,8 @@
         ${loginError ? `<div class="tf-login-error">${loginError}</div>` : ''}
         <button class="tf-login-submit" id="tf-login-submit">${isSignup ? 'Criar conta' : 'Entrar'}</button>
         <div class="tf-hint" style="margin-top:12px;">${isSignup
-          ? 'Os dados ficam criptografados neste navegador; não tem como recuperar se você esquecer a senha.'
-          : 'Ainda não tem perfil? Use a aba "Criar conta" acima.'}</div>
+          ? 'Seus dados ficam salvos na nuvem e sincronizados entre seus dispositivos.'
+          : 'Ainda não tem conta? Use a aba "Criar conta" acima.'}</div>
         <div style="text-align:center;margin-top:14px;">
           <button id="tf-login-privacy" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:11.5px;">Política de Privacidade</button>
         </div>
@@ -1219,29 +1204,9 @@
     const passConfirmEl = document.getElementById('tf-login-pass-confirm');
     document.getElementById('tf-login-pass').onkeydown = (ev) => { if (ev.key === 'Enter'){ if (passConfirmEl) passConfirmEl.focus(); else doLogin(); } };
     if (passConfirmEl) passConfirmEl.onkeydown = (ev) => { if (ev.key === 'Enter') doLogin(); };
-    const userInput = document.getElementById('tf-login-user');
-    const userHint = document.getElementById('tf-login-user-hint');
-    let userHintTimer;
-    userInput.onkeydown = (ev) => { if (ev.key === 'Enter') document.getElementById('tf-login-pass').focus(); };
-    userInput.oninput = () => {
-      clearTimeout(userHintTimer);
-      userHintTimer = setTimeout(async () => {
-        const uname = normalizeUsername(userInput.value);
-        if (!uname){ userHint.textContent = ''; return; }
-        const profiles = await loadProfilesIndex();
-        const exists = !!profiles[uname];
-        if (isSignup){
-          userHint.textContent = exists
-            ? `⚠ "${uname}" já existe — troque pra aba "Entrar".`
-            : `✓ "${uname}" está livre.`;
-        } else {
-          userHint.textContent = exists
-            ? `✓ Perfil "${uname}" encontrado.`
-            : `⚠ "${uname}" ainda não existe — troque pra aba "Criar conta".`;
-        }
-      }, 300);
-    };
-    userInput.focus();
+    const emailInput = document.getElementById('tf-login-email');
+    emailInput.onkeydown = (ev) => { if (ev.key === 'Enter') document.getElementById('tf-login-pass').focus(); };
+    emailInput.focus();
   }
 
   function renderLanding(){
@@ -1325,19 +1290,16 @@
         <p style="font-size:12px;color:var(--muted);margin:0 0 24px;">Última atualização: agosto de 2026.</p>
 
         <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">O que coletamos</h2>
-        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Nada. O Termômetro Financeiro não tem servidor — não existe nenhum lugar pra onde seus dados sejam enviados. Não há analytics, não há cookies de rastreamento, e não há compartilhamento com terceiros: não tem como compartilhar o que a gente nunca recebe.</p>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Só o que você mesmo digita: seu e-mail (pra login) e os lançamentos/investimentos que você registra. Não há analytics, não há cookies de rastreamento, e não há compartilhamento com terceiros.</p>
 
         <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Onde seus dados ficam</h2>
-        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Tudo fica salvo só no armazenamento local deste navegador, criptografado (AES-GCM 256 bits) com uma chave derivada da sua senha (PBKDF2, 210 mil iterações). Isso significa que mesmo alguém com acesso ao arquivo do navegador não consegue ler seus lançamentos sem sua senha — e também que não existe "esqueci minha senha": perder a senha é perder o acesso aos dados, porque a criptografia é de verdade.</p>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Num banco de dados gerenciado (Supabase/Postgres), pra sincronizar entre seus dispositivos. Cada conta só enxerga a própria linha de dados (Row Level Security no banco, aplicada em toda consulta autenticada pelo seu login) e o provedor criptografa tudo em repouso. Isso é diferente do modelo anterior (criptografia local com chave derivada da sua senha, sem servidor): agora existe login com recuperação de senha por e-mail, mas em troca o backend tecnicamente tem acesso aos dados armazenados — ninguém além de você os consulta, mas a garantia deixou de ser "nem o app consegue ler".</p>
 
         <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Por quanto tempo guardamos</h2>
-        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Enquanto você mantiver os dados neste navegador. Limpar os dados do site nas configurações do navegador, ou usar o botão "Excluir dados" dentro do app, apaga tudo permanentemente — sem cópia guardada em nenhum lugar, porque não existe backend.</p>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Enquanto sua conta existir. Usar o botão "Excluir dados" apaga permanentemente os lançamentos e investimentos guardados (a conta de login em si continua existindo, pra você poder entrar de novo com os dados zerados).</p>
 
         <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Exportação e exclusão</h2>
-        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Você pode exportar uma cópia de tudo quando quiser ("Exportar backup", na aba Diário) e excluir tudo quando quiser ("Excluir dados", no topo do app depois de entrar). Não existe pedido, prazo de espera ou aprovação — como os dados são só locais, a ação é imediata e sem volta.</p>
-
-        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Se um dia existir sincronização entre aparelhos</h2>
-        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Caso o app passe a ter um servidor pra sincronizar seus dados entre computador e celular, esta política será atualizada antes disso valer pra sua conta, detalhando o que passaria a ficar armazenado remotamente e sob quais garantias.</p>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Você pode exportar uma cópia de tudo quando quiser ("Exportar backup", na aba Diário) e excluir os dados quando quiser ("Excluir dados", no topo do app depois de entrar) — ação imediata e sem volta, sem pedido ou prazo de espera.</p>
 
         <button id="tf-privacy-back-bottom" style="background:none;border:none;color:var(--cold);cursor:pointer;font-family:inherit;font-size:13px;padding:0;margin-top:28px;">← Voltar</button>
       </section>
@@ -1347,7 +1309,6 @@
     document.getElementById('tf-privacy-back-bottom').onclick = closePrivacyPolicy;
   }
 
-  const STORAGE_KEY = 'months-data';
   const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
   let _toastTimer = null;
@@ -1371,7 +1332,6 @@
   let activeTab = 'diario';
   const TAB_LABELS = { diario: 'Diário', investimentos: 'Investimentos', dashboard: 'Dashboard' };
 
-  const INV_STORAGE_KEY = 'investments-data';
   // Vazio por padrão: sem posições pré-carregadas, apenas os defaults genéricos da reserva.
   const SEED_INVESTMENTS = {
     assets: {},
@@ -1461,8 +1421,18 @@
     } catch(e){
       applyTheme('dark');
     }
-    if (session) render();
-    else renderLanding();
+  }
+
+  async function boot(){
+    await loadTheme();
+    const { data } = await supabase.auth.getSession();
+    if (data.session){
+      session = { user: data.session.user, email: data.session.user.email };
+      await loadData();
+      await loadInvestments();
+    } else {
+      renderLanding();
+    }
   }
 
   async function toggleTheme(){
@@ -1492,9 +1462,9 @@
     if (deleteAccountBtn) deleteAccountBtn.onclick = openDeleteAccountModal;
   }
   function sessionBarHtml(){
-    const safeUsername = session ? session.username.replace(/</g,'&lt;') : '';
+    const safeEmail = session ? session.email.replace(/</g,'&lt;') : '';
     return `<div style="display:flex;align-items:center;gap:10px;">
-      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeUsername}</span><button id="tf-privacy-link" class="tf-reset">Privacidade</button><button id="tf-delete-account-btn" class="tf-reset" style="color:var(--hot);border-color:var(--hot);">Excluir dados</button><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
+      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeEmail}</span><button id="tf-privacy-link" class="tf-reset">Privacidade</button><button id="tf-delete-account-btn" class="tf-reset" style="color:var(--hot);border-color:var(--hot);">Excluir dados</button><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
       ${themeSwitchHtml()}
     </div>`;
   }
@@ -1548,8 +1518,9 @@
 
   async function loadData(){
     try{
-      const res = await window.storage.get(userKey(STORAGE_KEY), false);
-      state.months = res && res.value ? await decryptJSON(session.key, res.value) : {};
+      const { data, error } = await supabase.from('user_data').select('months_data').eq('user_id', session.user.id).single();
+      if (error) throw error;
+      state.months = data.months_data || {};
       state.loaded = true;
     } catch(e){
       console.error('Falha ao carregar lançamentos', e);
@@ -1569,14 +1540,24 @@
     render();
   }
 
-  async function saveData(silent = false){
-    try{
-      await window.storage.set(userKey(STORAGE_KEY), await encryptJSON(session.key, state.months), false);
-      if (!silent) showToast('Lançamento salvo');
-    } catch(e){
-      console.error('Falha ao salvar', e);
-      showToast('Falha ao salvar — verifique se a extensão/app está atualizado', 'err');
-    }
+  // Debounced: digitar rápido em várias células dispararia uma escrita de rede por campo,
+  // com risco de uma resposta fora de ordem sobrescrever dado mais novo com um mais velho.
+  let _saveDataTimer = null;
+  function saveData(silent = false){
+    clearTimeout(_saveDataTimer);
+    return new Promise(resolve => {
+      _saveDataTimer = setTimeout(async () => {
+        try{
+          const { error } = await supabase.from('user_data').update({ months_data: state.months }).eq('user_id', session.user.id);
+          if (error) throw error;
+          if (!silent) showToast('Lançamento salvo');
+        } catch(e){
+          console.error('Falha ao salvar', e);
+          showToast('Falha ao salvar — verifique sua conexão', 'err');
+        }
+        resolve();
+      }, 600);
+    });
   }
 
   function evalSum(raw){
@@ -1651,8 +1632,9 @@
   // ---- Investimentos ----
   async function loadInvestments(){
     try{
-      const res = await window.storage.get(userKey(INV_STORAGE_KEY), false);
-      invState = res && res.value ? await decryptJSON(session.key, res.value) : { assets:{}, reserve:{} };
+      const { data, error } = await supabase.from('user_data').select('investments_data').eq('user_id', session.user.id).single();
+      if (error) throw error;
+      invState = (data.investments_data && Object.keys(data.investments_data).length) ? data.investments_data : { assets:{}, reserve:{} };
     } catch(e){
       console.error('Falha ao carregar investimentos', e);
       invState = { assets:{}, reserve:{}, loaded: true, error: 'Não foi possível carregar seus investimentos. Seus dados salvos não foram apagados — se isso persistir, restaure a partir de um backup exportado.' };
@@ -1705,15 +1687,23 @@
     render();
   }
 
-  async function saveInvestments(silent = false){
-    try{
-      const toSave = { assets: invState.assets, reserve: invState.reserve };
-      await window.storage.set(userKey(INV_STORAGE_KEY), await encryptJSON(session.key, toSave), false);
-      if (!silent) showToast('Investimentos salvos');
-    } catch(e){
-      console.error('Falha ao salvar investimentos', e);
-      showToast('Falha ao salvar investimentos — verifique se a extensão/app está atualizado', 'err');
-    }
+  let _saveInvestmentsTimer = null;
+  function saveInvestments(silent = false){
+    clearTimeout(_saveInvestmentsTimer);
+    return new Promise(resolve => {
+      _saveInvestmentsTimer = setTimeout(async () => {
+        try{
+          const toSave = { assets: invState.assets, reserve: invState.reserve };
+          const { error } = await supabase.from('user_data').update({ investments_data: toSave }).eq('user_id', session.user.id);
+          if (error) throw error;
+          if (!silent) showToast('Investimentos salvos');
+        } catch(e){
+          console.error('Falha ao salvar investimentos', e);
+          showToast('Falha ao salvar investimentos — verifique sua conexão', 'err');
+        }
+        resolve();
+      }, 600);
+    });
   }
 
   function todayISO(){
@@ -1721,6 +1711,19 @@
   }
 
   // ---- Backup (exportar/importar tudo o que está salvo) ----
+  // Data do último export fica só em localStorage puro (não é dado sensível e não depende
+  // de qual backend está autenticando no momento) — usada só pro lembrete de backup desatualizado.
+  const LAST_BACKUP_KEY = 'tf-last-backup-at';
+  const BACKUP_REMINDER_DAYS = 30;
+
+  function daysSinceLastBackup(){
+    const raw = localStorage.getItem(LAST_BACKUP_KEY);
+    if (!raw) return null;
+    const diffMs = Date.now() - new Date(raw).getTime();
+    if (isNaN(diffMs)) return null;
+    return Math.floor(diffMs / 86400000);
+  }
+
   function exportBackup(){
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -1734,7 +1737,9 @@
     a.download = `termometro-backup-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
     showToast('Backup exportado');
+    render();
   }
 
   async function importBackup(file){
@@ -2064,6 +2069,10 @@
     const nd = daysInMonth(year, month);
     const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth());
     const opening = getOpeningBalance(year, month);
+    const daysSinceBackup = daysSinceLastBackup();
+    const backupReminder = (daysSinceBackup === null)
+      ? 'Você ainda não exportou um backup.'
+      : (daysSinceBackup > BACKUP_REMINDER_DAYS ? `Faz ${daysSinceBackup} dias que você não exporta um backup.` : null);
 
     let totalEntrada=0, totalSaida=0, totalDiario=0;
     let rows = '';
@@ -2116,12 +2125,12 @@
 
       <div class="tf-nav">
         ${!isCurrentMonth ? `<button id="tf-today" class="tf-reset" style="flex-shrink:0;">Hoje</button>` : ''}
-        <button id="tf-prev" ${isAtMin(year,month) ? 'disabled style="opacity:.35;cursor:default"' : ''}>‹</button>
+        <button id="tf-prev" aria-label="Mês anterior" ${isAtMin(year,month) ? 'disabled style="opacity:.35;cursor:default"' : ''}>‹</button>
         ${monthPickerOpen
           ? `<input type="month" id="tf-month-picker" class="tf-month-picker" value="${monthKey(year,month)}" min="${monthKey(MIN_YEAR,MIN_MONTH)}">`
           : `<button id="tf-month-label-btn" class="tf-month-label">${MONTH_NAMES[month]} de ${year}</button>`
         }
-        <button id="tf-next">›</button>
+        <button id="tf-next" aria-label="Próximo mês">›</button>
       </div>
 
       <div class="tf-main">
@@ -2167,7 +2176,7 @@
       </div>
 
       <div class="tf-footer-bar">
-        <span>Dados salvos só na sua conta — ninguém mais vê isso.</span>
+        <span${backupReminder ? ` style="color:var(--warm)"` : ''}>${backupReminder || 'Dados salvos só na sua conta — ninguém mais vê isso.'}</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="tf-reset" id="tf-export-btn">⬇ Exportar backup</button>
           <button class="tf-reset" id="tf-import-btn">⬆ Importar backup</button>
@@ -2488,10 +2497,10 @@
       ${tabBarHtml()}
 
       <div class="tf-inv-summary">
-        <div class="tf-pill"><div class="tf-pill-label">Investido</div><div class="tf-pill-value">${fmtBRL(totalInvestido)}</div></div>
-        <div class="tf-pill"><div class="tf-pill-label">Valor atual</div><div class="tf-pill-value">${fmtBRL(totalAtual)}</div></div>
-        <div class="tf-pill"><div class="tf-pill-label">Rentabilidade</div><div class="tf-pill-value" style="color:${totalAtual>=totalInvestido?'var(--good)':'var(--hot)'}">${fmtPct(totalInvestido>0 ? ((totalAtual-totalInvestido)/totalInvestido)*100 : 0)}</div></div>
-        <div class="tf-pill"><div class="tf-pill-label">+ Reserva</div><div class="tf-pill-value">${fmtBRL(totalAtual + totalReserva)}</div></div>
+        <div class="tf-pill" title="Custo de aquisição do que está na carteira hoje: quantidade atual × preço médio pago (não é o total histórico já aportado)"><div class="tf-pill-label">Investido</div><div class="tf-pill-value">${fmtBRL(totalInvestido)}</div></div>
+        <div class="tf-pill" title="Quantidade atual × preço de mercado informado em cada ativo"><div class="tf-pill-label">Valor atual</div><div class="tf-pill-value">${fmtBRL(totalAtual)}</div></div>
+        <div class="tf-pill" title="Retorno percentual ponderado pelo valor atual da carteira: (valor atual − investido) ÷ investido"><div class="tf-pill-label">Rentabilidade</div><div class="tf-pill-value" style="color:${totalAtual>=totalInvestido?'var(--good)':'var(--hot)'}">${fmtPct(totalInvestido>0 ? ((totalAtual-totalInvestido)/totalInvestido)*100 : 0)}</div></div>
+        <div class="tf-pill" title="Valor atual da carteira + reserva de emergência (turbo + normal)"><div class="tf-pill-label">Patrimônio em investimentos</div><div class="tf-pill-value">${fmtBRL(totalAtual + totalReserva)}</div></div>
       </div>
 
       ${reserveCard}
@@ -2972,5 +2981,5 @@
     else renderDiario();
   }
 
-  loadTheme();
+  boot();
 })();</script>
