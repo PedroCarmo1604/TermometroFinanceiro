@@ -1,6 +1,7 @@
 <title>Termômetro Financeiro</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A1</text></svg>">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --bg:#161826;
@@ -712,8 +713,8 @@
   }
   #tf-ctx-menu button:hover{ background:var(--surface); }
   #tf-ctx-menu hr{ border:none; border-top:1px solid var(--line); margin:3px 0; }
-  /* Modal de edição de nota */
-  #tf-note-modal{
+  /* Modal de edição de nota / exclusão de conta */
+  #tf-note-modal, #tf-delete-account-modal{
     position:fixed;
     inset:0;
     background:rgba(0,0,0,0.55);
@@ -722,7 +723,7 @@
     align-items:center;
     justify-content:center;
   }
-  #tf-note-modal.open{ display:flex; }
+  #tf-note-modal.open, #tf-delete-account-modal.open{ display:flex; }
   .tf-note-modal-box{
     background:var(--surface);
     border:1px solid var(--line);
@@ -909,6 +910,18 @@
     </div>
   </div>
 </div>
+<div id="tf-delete-account-modal">
+  <div class="tf-note-modal-box">
+    <label>Excluir todos os meus dados</label>
+    <p style="font-size:12.5px;line-height:1.5;color:var(--muted);margin:0 0 12px;">Isso apaga <strong>todos</strong> os lançamentos, notas e investimentos deste perfil, sem volta — não tem como recuperar depois. Pra confirmar, digite o usuário <strong id="tf-delete-account-username" style="color:var(--text);"></strong> abaixo.</p>
+    <input id="tf-delete-account-confirm-input" type="text" autocomplete="off" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;">
+    <div id="tf-delete-account-error" style="color:var(--hot);font-size:12px;margin-bottom:8px;min-height:14px;"></div>
+    <div class="tf-note-modal-actions">
+      <button class="cancel" id="tf-delete-account-cancel">Cancelar</button>
+      <button id="tf-delete-account-confirm" style="border-radius:7px;padding:6px 14px;font-size:12.5px;cursor:pointer;border:1px solid var(--hot);background:transparent;color:var(--hot);font-weight:600;">Excluir tudo</button>
+    </div>
+  </div>
+</div>
 <div id="tf-app"><div class="tf-loading">Carregando seus lançamentos...</div></div>
 
 <script>
@@ -922,9 +935,19 @@
       },
       async set(key, value){
         localStorage.setItem('tf-storage:' + key, value);
+      },
+      async remove(key){
+        localStorage.removeItem('tf-storage:' + key);
       }
     };
   }
+
+  // ---- Supabase (autenticação) ----
+  // Pegue esses dois valores em supabase.com → seu projeto → Settings → API.
+  // A anon/public key é segura de expor aqui (não é secreta) — nunca coloque a service_role key.
+  const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
+  const SUPABASE_ANON_KEY = 'SUA-ANON-KEY-AQUI';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ---- Expressões e Notas ----
   function cellKey(y,m,d,field){ return `${y}-${m}-${d}-${field}`; }
@@ -966,7 +989,7 @@
   function hideCtxMenu(){ _ctxMenu.style.display = 'none'; _ctxTarget = null; }
 
   document.addEventListener('click', () => hideCtxMenu());
-  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); closeDeleteAccountModal(); } });
 
   document.getElementById('tf-ctx-add-note').onclick = (e) => {
     e.stopPropagation();
@@ -1010,92 +1033,41 @@
     if (e.target === document.getElementById('tf-note-modal')) closeNoteModal();
   });
 
-  // ---- Perfis / login local com criptografia ----
-  // Sem servidor: usuário+senha vira uma chave (PBKDF2) que criptografa (AES-GCM) os dados
-  // salvos neste navegador. Não sincroniza entre dispositivos — só protege e separa perfis localmente.
-  const PROFILES_INDEX_KEY = 'tf-profiles';
-  let session = null; // { username, key } depois de login bem-sucedido; null = não logado
+  // Modal de exclusão de conta
+  document.getElementById('tf-delete-account-cancel').onclick = closeDeleteAccountModal;
+  document.getElementById('tf-delete-account-confirm').onclick = confirmDeleteAccount;
+  document.getElementById('tf-delete-account-confirm-input').onkeydown = (e) => { if (e.key === 'Enter') confirmDeleteAccount(); };
+  document.getElementById('tf-delete-account-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('tf-delete-account-modal')) closeDeleteAccountModal();
+  });
+
+  // ---- Autenticação (Supabase Auth) ----
+  // E-mail+senha gerenciados pelo Supabase — inclui recuperação de senha (ver resetPassword,
+  // ainda não exposta na UI). Os dados ficam protegidos por RLS (cada usuário só acessa a própria
+  // linha em user_data) + criptografia em repouso do banco, mas deixaram de ser zero-knowledge:
+  // diferente da versão anterior (PBKDF2+AES-GCM local), o backend tecnicamente pode acessar os dados.
+  let session = null; // { user, email } depois de login bem-sucedido; null = não logado
   let loginError = '';
   let authTab = 'login'; // 'login' | 'signup' — aba ativa na tela de entrar/criar conta
+  let privacyBackTo = 'landing'; // 'landing' | 'login' | 'app' — pra onde o botão Voltar da política de privacidade leva
 
-  function bufToBase64(buf){
-    return btoa(String.fromCharCode(...new Uint8Array(buf)));
-  }
-  function base64ToBuf(b64){
-    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  }
-
-  async function deriveKey(password, saltB64){
-    const salt = base64ToBuf(saltB64);
-    const enc = new TextEncoder();
-    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' },
-      baseKey,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt']
-    );
-  }
-
-  async function encryptJSON(key, obj){
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder();
-    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(obj)));
-    return JSON.stringify({ iv: bufToBase64(iv), data: bufToBase64(cipher) });
-  }
-
-  async function decryptJSON(key, raw){
-    const parsed = JSON.parse(raw);
-    const iv = base64ToBuf(parsed.iv);
-    const cipherBuf = base64ToBuf(parsed.data);
-    const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipherBuf);
-    return JSON.parse(new TextDecoder().decode(plainBuf));
-  }
-
-  async function loadProfilesIndex(){
-    try{
-      const res = await window.storage.get(PROFILES_INDEX_KEY, false);
-      return res && res.value ? JSON.parse(res.value) : {};
-    } catch(e){
-      return {};
-    }
-  }
-  async function saveProfilesIndex(profiles){
-    await window.storage.set(PROFILES_INDEX_KEY, JSON.stringify(profiles), false);
-  }
-
-  function userKey(base){
-    return `${base}:${session.username}`;
-  }
-
-  // Normaliza pra evitar que "pedropaulo", "pedro paulo" e "Pedro Paulo" virem contas diferentes
-  function normalizeUsername(raw){
-    return (raw || '').trim().toLowerCase().replace(/\s+/g, '');
-  }
-
-  async function migrateLegacyDataIfPresent(){
-    const profiles = await loadProfilesIndex();
-    if (Object.keys(profiles).length !== 1) return; // só migra pro primeiro perfil criado
-    const legacyMonths = await window.storage.get(STORAGE_KEY, false);
-    const legacyInv = await window.storage.get(INV_STORAGE_KEY, false);
-    if (legacyMonths && legacyMonths.value){
-      const monthsObj = JSON.parse(legacyMonths.value);
-      await window.storage.set(userKey(STORAGE_KEY), await encryptJSON(session.key, monthsObj), false);
-    }
-    if (legacyInv && legacyInv.value){
-      const invObj = JSON.parse(legacyInv.value);
-      await window.storage.set(userKey(INV_STORAGE_KEY), await encryptJSON(session.key, invObj), false);
-    }
+  function translateAuthError(message){
+    const m = (message || '').toLowerCase();
+    if (m.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+    if (m.includes('user already registered')) return 'Esse e-mail já tem conta — use a aba "Entrar".';
+    if (m.includes('password should be at least')) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if (m.includes('unable to validate email') || m.includes('invalid email')) return 'E-mail inválido.';
+    if (m.includes('email not confirmed')) return 'Confirme seu e-mail (link enviado no cadastro) antes de entrar.';
+    return 'Não consegui entrar — tente de novo em instantes.';
   }
 
   async function doLogin(){
-    const username = normalizeUsername(document.getElementById('tf-login-user').value);
+    const email = document.getElementById('tf-login-email').value.trim();
     const pass = document.getElementById('tf-login-pass').value;
     const passConfirmEl = document.getElementById('tf-login-pass-confirm');
     const passConfirm = passConfirmEl ? passConfirmEl.value : null;
-    if (!username || !pass){
-      loginError = 'Preencha usuário e senha.';
+    if (!email || !pass){
+      loginError = 'Preencha e-mail e senha.';
       renderLogin();
       return;
     }
@@ -1105,66 +1077,94 @@
       return;
     }
     loginError = '';
-    let isNewProfile = false;
     try{
-      const profiles = await loadProfilesIndex();
-      let profile = profiles[username];
-      const exists = !!profile;
-      if (authTab === 'signup' && exists){
-        loginError = `O usuário "${username}" já existe. Use a aba "Entrar".`;
-        renderLogin();
-        return;
-      }
-      if (authTab === 'login' && !exists){
-        loginError = `O usuário "${username}" ainda não existe. Use a aba "Criar conta".`;
-        renderLogin();
-        return;
-      }
-      isNewProfile = !exists;
-      if (isNewProfile) profile = { salt: bufToBase64(crypto.getRandomValues(new Uint8Array(16))) };
-
-      const key = await deriveKey(pass, profile.salt);
-
-      if (isNewProfile){
-        profiles[username] = profile;
-        await saveProfilesIndex(profiles);
-        // "canário": grava um marcador vazio já criptografado, pra validar a senha em logins futuros
-        await window.storage.set(`${STORAGE_KEY}:${username}`, await encryptJSON(key, {}), false);
+      if (authTab === 'signup'){
+        const { data, error } = await supabase.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        if (!data.session){
+          authTab = 'login';
+          loginError = '';
+          renderLogin();
+          showToast('Confira seu e-mail pra confirmar a conta antes de entrar');
+          return;
+        }
+        session = { user: data.session.user, email: data.session.user.email };
       } else {
-        const res = await window.storage.get(`${STORAGE_KEY}:${username}`, false);
-        if (res && res.value) await decryptJSON(key, res.value); // lança erro se a senha estiver errada
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+        session = { user: data.session.user, email: data.session.user.email };
       }
-
-      session = { username, key };
     } catch(e){
       console.error('Falha no login', e);
       session = null;
-      loginError = 'Usuário ou senha incorretos.';
+      loginError = translateAuthError(e.message);
       renderLogin();
       return;
-    }
-
-    if (isNewProfile){
-      try{
-        await migrateLegacyDataIfPresent();
-      } catch(e){
-        console.error('Falha ao migrar dados antigos', e);
-        session = null;
-        loginError = 'Login certo, mas não consegui migrar seus dados antigos automaticamente. Nada foi apagado — tente entrar de novo antes de continuar usando esse usuário.';
-        renderLogin();
-        return;
-      }
     }
     await loadData();
     await loadInvestments();
   }
 
-  function logout(){
+  async function logout(){
+    await supabase.auth.signOut();
     session = null;
     state = { months: {}, loaded: false, error: null };
     invState = { assets: {}, reserve: {}, loaded: false };
     activeTab = 'diario';
     renderLogin();
+  }
+
+  function openDeleteAccountModal(){
+    if (!session) return;
+    document.getElementById('tf-delete-account-username').textContent = session.username;
+    document.getElementById('tf-delete-account-confirm-input').value = '';
+    document.getElementById('tf-delete-account-error').textContent = '';
+    document.getElementById('tf-delete-account-modal').classList.add('open');
+    setTimeout(() => document.getElementById('tf-delete-account-confirm-input').focus(), 50);
+  }
+
+  function closeDeleteAccountModal(){
+    const modal = document.getElementById('tf-delete-account-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  async function confirmDeleteAccount(){
+    if (!session) return;
+    const input = document.getElementById('tf-delete-account-confirm-input');
+    const errorEl = document.getElementById('tf-delete-account-error');
+    if (normalizeUsername(input.value) !== session.username){
+      errorEl.textContent = 'Digite exatamente o seu usuário pra confirmar.';
+      return;
+    }
+    closeDeleteAccountModal();
+    await deleteAllMyData();
+  }
+
+  // Exclusão a pedido do usuário (LGPD): remove o perfil do índice — sem ele, a chave
+  // de criptografia nunca mais pode ser derivada, então os dados antigos ficam
+  // permanentemente indecifráveis mesmo que algum resíduo do host não seja removido de fato.
+  async function deleteAllMyData(){
+    const username = session.username;
+    try{
+      if (typeof window.storage.remove === 'function'){
+        await window.storage.remove(userKey(STORAGE_KEY), false);
+        await window.storage.remove(userKey(INV_STORAGE_KEY), false);
+      } else {
+        await window.storage.set(userKey(STORAGE_KEY), '', false);
+        await window.storage.set(userKey(INV_STORAGE_KEY), '', false);
+      }
+    } catch(e){
+      console.error('Falha ao apagar dados criptografados', e);
+    }
+    try{
+      const profiles = await loadProfilesIndex();
+      delete profiles[username];
+      await saveProfilesIndex(profiles);
+    } catch(e){
+      console.error('Falha ao remover perfil do índice', e);
+    }
+    logout();
+    showToast('Todos os seus dados foram apagados');
   }
 
   function renderLogin(){
@@ -1206,12 +1206,16 @@
         <div class="tf-hint" style="margin-top:12px;">${isSignup
           ? 'Os dados ficam criptografados neste navegador; não tem como recuperar se você esquecer a senha.'
           : 'Ainda não tem perfil? Use a aba "Criar conta" acima.'}</div>
+        <div style="text-align:center;margin-top:14px;">
+          <button id="tf-login-privacy" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:11.5px;">Política de Privacidade</button>
+        </div>
       </div>
     `;
     wireThemeSwitch();
     document.getElementById('tf-authtab-login').onclick = () => { authTab = 'login'; loginError = ''; renderLogin(); };
     document.getElementById('tf-authtab-signup').onclick = () => { authTab = 'signup'; loginError = ''; renderLogin(); };
     document.getElementById('tf-login-submit').onclick = doLogin;
+    document.getElementById('tf-login-privacy').onclick = () => openPrivacyPolicy('login');
     const passConfirmEl = document.getElementById('tf-login-pass-confirm');
     document.getElementById('tf-login-pass').onkeydown = (ev) => { if (ev.key === 'Enter'){ if (passConfirmEl) passConfirmEl.focus(); else doLogin(); } };
     if (passConfirmEl) passConfirmEl.onkeydown = (ev) => { if (ev.key === 'Enter') doLogin(); };
@@ -1277,13 +1281,16 @@
         </div>
       </section>
 
-      <section style="max-width:560px;margin:36px auto 0;padding-bottom:40px;">
+      <section style="max-width:560px;margin:36px auto 0;padding-bottom:16px;">
         <div class="tf-card" style="text-align:center;">
           <div style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:19px;color:var(--text);">Pronto pra começar?</div>
           <p style="margin:6px 0 14px;color:var(--muted);font-size:13px;">Leva menos de um minuto pra criar seu perfil e começar a lançar o dia a dia.</p>
           <button id="tf-landing-cta" class="tf-login-submit" style="width:auto;padding:8px 18px;margin-top:0;">Criar meu perfil</button>
         </div>
       </section>
+      <div style="text-align:center;padding-bottom:40px;">
+        <button id="tf-landing-privacy" style="background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:12px;">Política de Privacidade</button>
+      </div>
     `;
     wireThemeSwitch();
     const goLogin = () => { authTab = 'login'; renderLogin(); };
@@ -1291,6 +1298,53 @@
     document.getElementById('tf-landing-signup').onclick = goSignup;
     document.getElementById('tf-landing-login').onclick = goLogin;
     document.getElementById('tf-landing-cta').onclick = goSignup;
+    document.getElementById('tf-landing-privacy').onclick = () => openPrivacyPolicy('landing');
+  }
+
+  function openPrivacyPolicy(backTo){
+    privacyBackTo = backTo;
+    renderPrivacyPolicy();
+  }
+
+  function closePrivacyPolicy(){
+    if (privacyBackTo === 'app') render();
+    else if (privacyBackTo === 'login') renderLogin();
+    else renderLanding();
+  }
+
+  function renderPrivacyPolicy(){
+    const app = document.getElementById('tf-app');
+    app.innerHTML = `
+      <div class="tf-head">
+        <div><div class="tf-title">Termômetro Financeiro</div></div>
+        ${themeSwitchHtml()}
+      </div>
+      <section style="max-width:640px;margin:20px auto 40px;">
+        <button id="tf-privacy-back" style="background:none;border:none;color:var(--cold);cursor:pointer;font-family:inherit;font-size:13px;padding:0;margin-bottom:16px;">← Voltar</button>
+        <h1 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:24px;color:var(--text);margin:0 0 4px;">Política de Privacidade</h1>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 24px;">Última atualização: agosto de 2026.</p>
+
+        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">O que coletamos</h2>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Nada. O Termômetro Financeiro não tem servidor — não existe nenhum lugar pra onde seus dados sejam enviados. Não há analytics, não há cookies de rastreamento, e não há compartilhamento com terceiros: não tem como compartilhar o que a gente nunca recebe.</p>
+
+        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Onde seus dados ficam</h2>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Tudo fica salvo só no armazenamento local deste navegador, criptografado (AES-GCM 256 bits) com uma chave derivada da sua senha (PBKDF2, 210 mil iterações). Isso significa que mesmo alguém com acesso ao arquivo do navegador não consegue ler seus lançamentos sem sua senha — e também que não existe "esqueci minha senha": perder a senha é perder o acesso aos dados, porque a criptografia é de verdade.</p>
+
+        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Por quanto tempo guardamos</h2>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Enquanto você mantiver os dados neste navegador. Limpar os dados do site nas configurações do navegador, ou usar o botão "Excluir dados" dentro do app, apaga tudo permanentemente — sem cópia guardada em nenhum lugar, porque não existe backend.</p>
+
+        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Exportação e exclusão</h2>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Você pode exportar uma cópia de tudo quando quiser ("Exportar backup", na aba Diário) e excluir tudo quando quiser ("Excluir dados", no topo do app depois de entrar). Não existe pedido, prazo de espera ou aprovação — como os dados são só locais, a ação é imediata e sem volta.</p>
+
+        <h2 style="font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:15px;color:var(--text);margin:20px 0 6px;">Se um dia existir sincronização entre aparelhos</h2>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--muted);margin:0;">Caso o app passe a ter um servidor pra sincronizar seus dados entre computador e celular, esta política será atualizada antes disso valer pra sua conta, detalhando o que passaria a ficar armazenado remotamente e sob quais garantias.</p>
+
+        <button id="tf-privacy-back-bottom" style="background:none;border:none;color:var(--cold);cursor:pointer;font-family:inherit;font-size:13px;padding:0;margin-top:28px;">← Voltar</button>
+      </section>
+    `;
+    wireThemeSwitch();
+    document.getElementById('tf-privacy-back').onclick = closePrivacyPolicy;
+    document.getElementById('tf-privacy-back-bottom').onclick = closePrivacyPolicy;
   }
 
   const STORAGE_KEY = 'months-data';
@@ -1432,11 +1486,15 @@
     if (btn) btn.onclick = toggleTheme;
     const logoutBtn = document.getElementById('tf-logout-btn');
     if (logoutBtn) logoutBtn.onclick = logout;
+    const privacyBtn = document.getElementById('tf-privacy-link');
+    if (privacyBtn) privacyBtn.onclick = () => openPrivacyPolicy('app');
+    const deleteAccountBtn = document.getElementById('tf-delete-account-btn');
+    if (deleteAccountBtn) deleteAccountBtn.onclick = openDeleteAccountModal;
   }
   function sessionBarHtml(){
     const safeUsername = session ? session.username.replace(/</g,'&lt;') : '';
     return `<div style="display:flex;align-items:center;gap:10px;">
-      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeUsername}</span><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
+      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeUsername}</span><button id="tf-privacy-link" class="tf-reset">Privacidade</button><button id="tf-delete-account-btn" class="tf-reset" style="color:var(--hot);border-color:var(--hot);">Excluir dados</button><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
       ${themeSwitchHtml()}
     </div>`;
   }
@@ -1542,7 +1600,35 @@
     return Math.round(total * 100) / 100;
   }
 
+  // Reaproveita a mesma tokenização do evalSum só pra achar pedaços que ele
+  // silenciosamente trata como 0 (ex: "abc", "R$100", "12x") em vez de somar.
+  function findInvalidTokens(raw){
+    if (!raw) return [];
+    const str = String(raw).trim();
+    if (!str) return [];
+    const tokens = str.match(/[+-]?[^+-]+/g);
+    if (!tokens) return [];
+    const invalid = [];
+    for (let tok of tokens){
+      let cleaned = tok.trim();
+      if (!cleaned) continue;
+      if (cleaned[0] === '-' || cleaned[0] === '+') cleaned = cleaned.slice(1).trim();
+      cleaned = cleaned.replace(',', '.');
+      if (!/^\d*\.?\d+$/.test(cleaned)) invalid.push(tok.trim());
+    }
+    return invalid;
+  }
+
+  function warnIfInvalidNumber(raw){
+    const invalid = findInvalidTokens(raw);
+    if (invalid.length){
+      showToast(`Não entendi "${invalid.join(', ')}" no valor digitado — foi ignorado no cálculo`, 'err');
+    }
+    return invalid.length === 0;
+  }
+
   function setEntry(y,m,d,field,rawValue){
+    warnIfInvalidNumber(rawValue);
     const mo = getMonth(y,m,true);
     if (!mo.days[d]) mo.days[d] = { entrada:0, saida:0, diario:0 };
     const computed = evalSum(rawValue);
@@ -1555,6 +1641,7 @@
   }
 
   function setOpening(y,m,value){
+    warnIfInvalidNumber(value);
     const mo = getMonth(y,m,true);
     mo.openingBalance = evalSum(value);
     saveData();
