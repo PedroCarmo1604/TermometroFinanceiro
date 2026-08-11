@@ -38,13 +38,24 @@ Depois de confirmar que o perfil `pedropaulo` estava com os dados corretos (migr
 
 ## Backlog (identificado, não priorizado ainda)
 
+**Backend / acesso multi-dispositivo** *(mudança grande de arquitetura — planejamento registrado em 11/08/2026, ainda não iniciado)*
+
+Login "de verdade" com os mesmos dados aparecendo em qualquer computador/celular após autenticar — exige sair do formato de arquivo único (login local criptografado, item já concluído acima) e construir um backend de verdade. Decidimos adiar a implementação, mas o escopo abaixo é o plano de referência pra quando isso for retomado — é também pré-requisito pra viabilizar testes assistidos por outra pessoa (hoje os dados só existem no `localStorage` do navegador de quem testa).
+
+1. **Autenticação** — e-mail + senha (ou magic link); evitar social login no MVP (complica LGPD de terceiro). Tabela `users` (id, e-mail, hash de senha, criado_em).
+2. **Banco de dados** — Postgres gerenciado (Supabase ou Neon, ambos com free tier; Supabase já resolve auth + banco juntos, matando dois passos de uma vez). Tabelas mínimas: `users`, `months_data` (lançamentos diários), `investments_transactions` (histórico de compra/venda pra replay de PM), `ui_preferences`. Migrar a lógica de `baseQty`/`basePM` + replay de transações (hoje só no client) pro backend, que vira a fonte de verdade — é a parte mais delicada, testar bem (ver também item de testes automatizados abaixo, que cobre as mesmas funções de cálculo).
+3. **API** — REST simples (ou Supabase client direto, sem precisar escrever API própria): endpoints de CRUD pra diário, investimentos e leitura de dashboard agregado. Todo endpoint autenticado por token de sessão, sem exceção — dado financeiro não pode ficar aberto.
+4. **LGPD** — não é opcional pra produto pago:
+   - Página de política de privacidade (o que coleta, por quanto tempo guarda, com quem compartilha — resposta: ninguém).
+   - Endpoint/rotina de exportação e exclusão de dados a pedido do usuário.
+   - Dados sensíveis (valores financeiros) criptografados em repouso — a maioria dos gerenciados (Supabase/Neon) já faz isso por padrão, mas confirmar.
+5. **Migração do front-end** — trocar `window.storage`/`localStorage` pelas chamadas à API/Supabase; a estrutura de chaves já usada (`months-data`, `investments-data`, `ui-theme`) mapeia quase direto pra tabelas. Continua single-page app, mas com estado vindo do servidor.
+6. **Ordem de execução sugerida**: (1) setup Supabase (auth + Postgres, infra antes de código) → (2) schema das tabelas → (3) migrar lógica de PM/replay pro backend → (4) trocar chamadas do front de `window.storage` pra API → (5) política de privacidade + rota de exclusão de conta → (6) deploy (Vercel/Railway) só depois de validar localmente.
+
 **Viabilidade para testes assistidos**
 - Testes automatizados para as funções de cálculo (`evalSum`, `recomputePosition`, `computeSaldoForDay`) e para as migrações de schema já existentes.
 - Sincronização entre abas (hoje, duas abas abertas podem se sobrescrever silenciosamente via `localStorage`).
 - Lembrete de backup (nenhum aviso de "faz tempo que você não exporta").
-
-**Ideia futura: acesso de qualquer dispositivo**
-- Login "de verdade" com os mesmos dados aparecendo em qualquer computador/celular após autenticar — exige sair do formato de arquivo único e construir um backend (servidor + banco de dados + senha com hash seguro no servidor, tipo bcrypt/argon2) com hospedagem própria. Mudança grande de arquitetura, decidimos adiar e ficar por enquanto só com o login local criptografado (item acima).
 
 **Experiência do usuário**
 - Validação perceptível de entrada numérica (`evalSum` converte texto inválido em `0` silenciosamente).
