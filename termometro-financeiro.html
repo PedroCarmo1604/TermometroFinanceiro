@@ -14,6 +14,11 @@
     --hot:#EF4444;
     --mid:#F59E0B;
     --good:#34D399;
+    --saldo-deep-neg:#DC2626;
+    --saldo-neg:#EF4444;
+    --saldo-neutral:#F59E0B;
+    --saldo-pos:#6EE7B7;
+    --saldo-deep-pos:#059669;
   }
   :root[data-tf-theme="light"]{
     --bg:#F4F6FA;
@@ -27,6 +32,11 @@
     --hot:#DC2626;
     --mid:#D97706;
     --good:#059669;
+    --saldo-deep-neg:#991B1B;
+    --saldo-neg:#DC2626;
+    --saldo-neutral:#D97706;
+    --saldo-pos:#10B981;
+    --saldo-deep-pos:#047857;
   }
   *{box-sizing:border-box;}
   html, body{
@@ -1948,6 +1958,14 @@
     return t;
   }
 
+  function saldoColorVar(saldo){
+    if (saldo < -500) return 'var(--saldo-deep-neg)';
+    if (saldo < 0) return 'var(--saldo-neg)';
+    if (saldo < 900) return 'var(--saldo-neutral)';
+    if (saldo < 2000) return 'var(--saldo-pos)';
+    return 'var(--saldo-deep-pos)';
+  }
+
   function renderDiario(){
     const app = document.getElementById('tf-app');
     if (!state.loaded){
@@ -1987,7 +2005,7 @@
         ${cellHtml('entrada', e.entrada)}
         ${cellHtml('saida', e.saida)}
         ${cellHtml('diario', e.diario)}
-        <td><input class="tf-saldo" value="${fmtBRL(saldo)}" readonly></td>
+        <td><input class="tf-saldo" style="color:${saldoColorVar(saldo)}" value="${fmtBRL(saldo)}" readonly></td>
       </tr>`;
     }
 
