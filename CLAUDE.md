@@ -2,7 +2,7 @@
 
 App de controle financeiro pessoal — arquivo único (`termometro-financeiro.html`), sem build. Roda direto abrindo no navegador. Login por e-mail/senha via Supabase Auth; dados sincronizam entre dispositivos através de um backend real (Postgres + RLS), não mais só localmente.
 
-Ver [melhorias.md](melhorias.md) pra histórico de melhorias, correções e backlog.
+Ver [melhorias.md](melhorias.md) pra histórico de melhorias, correções e backlog. Pra documentação em tom leigo (pra retomar conhecimento sem reler código): [glossario.md](glossario.md) explica termos técnicos usados nos docs (RLS, JWT, jsonb, etc.), [logica-financeira.md](logica-financeira.md) explica como o app calcula saldo/rentabilidade/reserva, e [decisoes.md](decisoes.md) registra o porquê de escolhas de arquitetura (Supabase, jsonb vs. relacional, etc.). [supabase-admin.md](supabase-admin.md) cobre operação do backend.
 
 ## Rotina de git
 
