@@ -1055,6 +1055,8 @@
     if (m.includes('password should be at least')) return 'A senha precisa ter pelo menos 6 caracteres.';
     if (m.includes('unable to validate email') || m.includes('invalid email')) return 'E-mail inválido.';
     if (m.includes('email not confirmed')) return 'Confirme seu e-mail (link enviado no cadastro) antes de entrar.';
+    if (m.includes('rate limit')) return 'Limite de envio de e-mail atingido — espere alguns minutos e tente de novo.';
+    if (m.includes('provider is disabled') || m.includes('email_provider_disabled') || m.includes('signups are disabled') || m.includes('logins are disabled')) return 'O login por e-mail está desativado nas configurações do projeto Supabase (Authentication → Providers → Email).';
     return 'Não consegui entrar — tente de novo em instantes.';
   }
 
