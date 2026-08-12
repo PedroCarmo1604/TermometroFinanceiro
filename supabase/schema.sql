@@ -1,4 +1,4 @@
--- Termômetro Financeiro — schema do Supabase
+  -- Termômetro Financeiro — schema do Supabase
 -- Rodar uma vez em: Supabase Dashboard > SQL Editor > New query > colar tudo > Run.
 -- Sem servidor próprio: a API é o próprio PostgREST do Supabase, protegida por RLS abaixo.
 
