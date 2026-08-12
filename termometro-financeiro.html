@@ -713,8 +713,80 @@
   }
   #tf-ctx-menu button:hover{ background:var(--surface); }
   #tf-ctx-menu hr{ border:none; border-top:1px solid var(--line); margin:3px 0; }
-  /* Modal de edição de nota / exclusão de conta */
-  #tf-note-modal, #tf-delete-account-modal{
+  /* Menu de perfil (avatar + dropdown no header) */
+  .tf-profile{ position:relative; }
+  .tf-profile-btn{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:3px 10px 3px 3px;
+    cursor:pointer;
+    color:var(--text);
+    font-family:inherit;
+  }
+  .tf-profile-btn:hover{ background:color-mix(in srgb, var(--text) 7%, transparent); }
+  .tf-profile-avatar{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:var(--surface-2);
+    color:var(--cold);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11.5px;
+    font-weight:600;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .tf-profile-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .tf-profile-name{ font-size:12.5px; color:var(--muted); }
+  .tf-profile-caret{ font-size:9px; color:var(--muted); }
+  .tf-profile-menu{
+    position:absolute;
+    top:calc(100% + 6px);
+    right:0;
+    width:210px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:5px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+    z-index:900;
+    display:none;
+  }
+  .tf-profile-menu.open{ display:block; }
+  .tf-profile-menu-head{
+    padding:5px 8px 8px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:5px;
+  }
+  .tf-profile-menu-name{ font-size:12.5px; color:var(--text); }
+  .tf-profile-menu-email{ font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tf-profile-menu-item{
+    width:100%;
+    text-align:left;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    font-size:13px;
+    font-family:inherit;
+    padding:7px 8px;
+    border-radius:6px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .tf-profile-menu-item:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
+  .tf-profile-menu-danger{ color:var(--hot); }
+  .tf-profile-menu-danger:hover{ background:color-mix(in srgb, var(--hot) 12%, transparent); }
+  .tf-profile-menu-sep{ height:1px; background:var(--line); margin:5px 0; }
+  /* Modal de edição de nota / exclusão de conta / alterar senha */
+  #tf-note-modal, #tf-delete-account-modal, #tf-change-password-modal{
     position:fixed;
     inset:0;
     background:rgba(0,0,0,0.55);
@@ -723,7 +795,7 @@
     align-items:center;
     justify-content:center;
   }
-  #tf-note-modal.open, #tf-delete-account-modal.open{ display:flex; }
+  #tf-note-modal.open, #tf-delete-account-modal.open, #tf-change-password-modal.open{ display:flex; }
   .tf-note-modal-box{
     background:var(--surface);
     border:1px solid var(--line);
@@ -922,6 +994,19 @@
     </div>
   </div>
 </div>
+<div id="tf-change-password-modal">
+  <div class="tf-note-modal-box">
+    <label>Alterar senha</label>
+    <input id="tf-change-password-new" type="password" autocomplete="new-password" placeholder="Nova senha" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;">
+    <input id="tf-change-password-confirm" type="password" autocomplete="new-password" placeholder="Repita a nova senha" style="width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:8px;">
+    <div id="tf-change-password-error" style="color:var(--hot);font-size:12px;margin-bottom:8px;min-height:14px;"></div>
+    <div class="tf-note-modal-actions">
+      <button class="cancel" id="tf-change-password-cancel">Cancelar</button>
+      <button class="save" id="tf-change-password-confirm-btn">Salvar senha</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="tf-avatar-input" accept="image/*" style="display:none">
 <div id="tf-app"><div class="tf-loading">Carregando seus lançamentos...</div></div>
 
 <script>
@@ -985,8 +1070,12 @@
   }
   function hideCtxMenu(){ _ctxMenu.style.display = 'none'; _ctxTarget = null; }
 
-  document.addEventListener('click', () => hideCtxMenu());
-  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); closeDeleteAccountModal(); } });
+  document.addEventListener('click', (e) => {
+    hideCtxMenu();
+    const profileEl = document.getElementById('tf-profile');
+    if (profileEl && !profileEl.contains(e.target)) closeProfileMenu();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); closeDeleteAccountModal(); closeChangePasswordModal(); closeProfileMenu(); } });
 
   document.getElementById('tf-ctx-add-note').onclick = (e) => {
     e.stopPropagation();
@@ -1037,6 +1126,16 @@
   document.getElementById('tf-delete-account-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('tf-delete-account-modal')) closeDeleteAccountModal();
   });
+
+  // Modal de alteração de senha
+  document.getElementById('tf-change-password-cancel').onclick = closeChangePasswordModal;
+  document.getElementById('tf-change-password-confirm-btn').onclick = confirmChangePassword;
+  document.getElementById('tf-change-password-new').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('tf-change-password-confirm').focus(); };
+  document.getElementById('tf-change-password-confirm').onkeydown = (e) => { if (e.key === 'Enter') confirmChangePassword(); };
+  document.getElementById('tf-change-password-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('tf-change-password-modal')) closeChangePasswordModal();
+  });
+  document.getElementById('tf-avatar-input').onchange = handleAvatarUpload;
 
   // ---- Autenticação (Supabase Auth) ----
   // E-mail+senha gerenciados pelo Supabase — inclui recuperação de senha (ver resetPassword,
@@ -1157,6 +1256,112 @@
     invState = { assets: {}, reserve: JSON.parse(JSON.stringify(SEED_INVESTMENTS.reserve)), loaded: true };
     render();
     showToast('Todos os seus dados foram apagados');
+  }
+
+  // Menu de perfil (avatar no header)
+  function toggleProfileMenu(e){
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('tf-profile-menu');
+    if (menu) menu.classList.toggle('open');
+  }
+  function closeProfileMenu(){
+    const menu = document.getElementById('tf-profile-menu');
+    if (menu) menu.classList.remove('open');
+  }
+  function profileDisplayName(){
+    if (!session) return '';
+    return (session.email || '').split('@')[0];
+  }
+  function profileInitials(){
+    const name = profileDisplayName();
+    return name ? name.slice(0, 2).toUpperCase() : '?';
+  }
+  function profileAvatarHtml(){
+    const url = session && session.user.user_metadata && session.user.user_metadata.avatar_url;
+    return url ? `<img src="${url}" alt="">` : profileInitials();
+  }
+
+  function openChangePasswordModal(){
+    if (!session) return;
+    closeProfileMenu();
+    document.getElementById('tf-change-password-new').value = '';
+    document.getElementById('tf-change-password-confirm').value = '';
+    document.getElementById('tf-change-password-error').textContent = '';
+    document.getElementById('tf-change-password-modal').classList.add('open');
+    setTimeout(() => document.getElementById('tf-change-password-new').focus(), 50);
+  }
+  function closeChangePasswordModal(){
+    const modal = document.getElementById('tf-change-password-modal');
+    if (modal) modal.classList.remove('open');
+  }
+  async function confirmChangePassword(){
+    const pass = document.getElementById('tf-change-password-new').value;
+    const confirm = document.getElementById('tf-change-password-confirm').value;
+    const errorEl = document.getElementById('tf-change-password-error');
+    if (!pass || pass.length < 6){
+      errorEl.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+      return;
+    }
+    if (pass !== confirm){
+      errorEl.textContent = 'As senhas não coincidem.';
+      return;
+    }
+    try{
+      const { error } = await supabase.auth.updateUser({ password: pass });
+      if (error) throw error;
+    } catch(e){
+      console.error('Falha ao alterar senha', e);
+      errorEl.textContent = translateAuthError(e.message);
+      return;
+    }
+    closeChangePasswordModal();
+    showToast('Senha alterada');
+  }
+
+  // Foto de perfil: redimensiona no canvas antes de subir, pra não mandar imagens gigantes
+  // pro bucket (a foto vira sempre um JPEG quadrado de no máximo 256px de lado).
+  function resizeImageToBlob(file, maxSize, quality){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Falha ao processar imagem')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Falha ao carregar imagem')); };
+      img.src = url;
+    });
+  }
+  async function handleAvatarUpload(e){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file || !session) return;
+    closeProfileMenu();
+    if (!file.type.startsWith('image/')){
+      showToast('Escolha um arquivo de imagem', 'err');
+      return;
+    }
+    try{
+      const blob = await resizeImageToBlob(file, 256, 0.82);
+      const path = `${session.user.id}/avatar.jpg`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+      const avatarUrl = pub.publicUrl + '?t=' + Date.now();
+      const { error: updErr } = await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+      if (updErr) throw updErr;
+      session.user.user_metadata = { ...(session.user.user_metadata || {}), avatar_url: avatarUrl };
+      render();
+      showToast('Foto de perfil atualizada');
+    } catch(err){
+      console.error('Falha ao enviar foto de perfil', err);
+      showToast('Falha ao enviar a foto — tente de novo', 'err');
+    }
   }
 
   function renderLogin(){
@@ -1459,14 +1664,40 @@
     const logoutBtn = document.getElementById('tf-logout-btn');
     if (logoutBtn) logoutBtn.onclick = logout;
     const privacyBtn = document.getElementById('tf-privacy-link');
-    if (privacyBtn) privacyBtn.onclick = () => openPrivacyPolicy('app');
+    if (privacyBtn) privacyBtn.onclick = () => { closeProfileMenu(); openPrivacyPolicy('app'); };
     const deleteAccountBtn = document.getElementById('tf-delete-account-btn');
-    if (deleteAccountBtn) deleteAccountBtn.onclick = openDeleteAccountModal;
+    if (deleteAccountBtn) deleteAccountBtn.onclick = () => { closeProfileMenu(); openDeleteAccountModal(); };
+    const profileToggle = document.getElementById('tf-profile-toggle');
+    if (profileToggle) profileToggle.onclick = toggleProfileMenu;
+    const avatarBtn = document.getElementById('tf-profile-avatar-btn');
+    if (avatarBtn) avatarBtn.onclick = () => { closeProfileMenu(); document.getElementById('tf-avatar-input').click(); };
+    const passwordBtn = document.getElementById('tf-profile-password-btn');
+    if (passwordBtn) passwordBtn.onclick = openChangePasswordModal;
   }
   function sessionBarHtml(){
-    const safeEmail = session ? session.email.replace(/</g,'&lt;') : '';
+    if (!session) return `<div style="display:flex;align-items:center;gap:10px;">${themeSwitchHtml()}</div>`;
+    const safeEmail = session.email.replace(/</g,'&lt;');
+    const safeName = profileDisplayName().replace(/</g,'&lt;');
     return `<div style="display:flex;align-items:center;gap:10px;">
-      ${session ? `<span style="font-size:11px;color:var(--muted);">👤 ${safeEmail}</span><button id="tf-privacy-link" class="tf-reset">Privacidade</button><button id="tf-delete-account-btn" class="tf-reset" style="color:var(--hot);border-color:var(--hot);">Excluir dados</button><button id="tf-logout-btn" class="tf-reset">Sair</button>` : ''}
+      <div class="tf-profile" id="tf-profile">
+        <button id="tf-profile-toggle" class="tf-profile-btn" title="Sua conta" type="button">
+          <span class="tf-profile-avatar">${profileAvatarHtml()}</span>
+          <span class="tf-profile-name">${safeName}</span>
+          <span class="tf-profile-caret">▾</span>
+        </button>
+        <div class="tf-profile-menu" id="tf-profile-menu">
+          <div class="tf-profile-menu-head">
+            <div class="tf-profile-menu-name">${safeName}</div>
+            <div class="tf-profile-menu-email">${safeEmail}</div>
+          </div>
+          <button id="tf-profile-avatar-btn" class="tf-profile-menu-item" type="button"><span style="opacity:.7;">🖼</span>Foto de perfil</button>
+          <button id="tf-profile-password-btn" class="tf-profile-menu-item" type="button"><span style="opacity:.7;">🔑</span>Alterar senha</button>
+          <button id="tf-privacy-link" class="tf-profile-menu-item" type="button"><span style="opacity:.7;">🔒</span>Privacidade</button>
+          <button id="tf-logout-btn" class="tf-profile-menu-item" type="button"><span style="opacity:.7;">↪</span>Sair</button>
+          <div class="tf-profile-menu-sep"></div>
+          <button id="tf-delete-account-btn" class="tf-profile-menu-item tf-profile-menu-danger" type="button"><span style="opacity:.85;">🗑</span>Excluir dados</button>
+        </div>
+      </div>
       ${themeSwitchHtml()}
     </div>`;
   }
