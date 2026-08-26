@@ -948,6 +948,35 @@
 
   .tf-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
+  #tf-calc-bar{
+    display:none;
+    position:fixed;
+    left:0; right:0; bottom:0;
+    z-index:60;
+    gap:8px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:var(--surface);
+    border-top:1px solid var(--line);
+    transform:translateY(100%);
+    transition:transform .15s ease;
+  }
+  #tf-calc-bar.is-visible{ transform:translateY(0); }
+  #tf-calc-bar button{
+    flex:1;
+    font-size:20px;
+    font-weight:600;
+    line-height:1;
+    padding:12px 0;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text);
+    cursor:pointer;
+  }
+  @media (pointer: coarse){
+    #tf-calc-bar{ display:flex; }
+  }
+
   @media (max-width: 640px){
     .tf-main{ flex-direction:column; }
     .tf-gauge-col{
@@ -959,10 +988,58 @@
     }
     .tf-gauge{ width:14px; height:52px; }
     .tf-gauge-value, .tf-gauge-label{ text-align:left; }
-    table.tf-table{ min-width:520px; }
     .tf-card-grid{ grid-template-columns:repeat(2, 1fr); }
     .tf-indicators{ grid-template-columns:1fr; }
     .tf-reserve-bars{ flex-direction:column; }
+
+    /* Alvos de toque e textos maiores no geral — telas pequenas não são desktop encolhido */
+    .tf-nav{ padding:10px 8px; }
+    .tf-nav button{ width:38px; height:38px; font-size:16px; }
+    .tf-nav button.tf-month-label{ font-size:15px; }
+    .tf-tabs button{ padding:10px 14px; font-size:13.5px; }
+    .tf-card-actions button{ padding:8px 12px; font-size:12.5px; }
+    .tf-card-field input, .tf-tx-form input, .tf-tx-form select, .tf-opening input{ font-size:16px; padding:7px 8px; }
+    .tf-hint{ font-size:12px; }
+
+    /* Diário: tabela vira uma lista de cards (um por dia), sem precisar rolar de lado */
+    .tf-table-wrap{ overflow-x:visible; }
+    table.tf-table{ min-width:0; font-size:13.5px; }
+    table.tf-table thead{ display:none; }
+    table.tf-table, table.tf-table tbody, table.tf-table tr{ display:block; width:100%; }
+    table.tf-table tbody tr{
+      display:grid;
+      grid-template-columns:34px 1fr 1fr;
+      grid-template-areas:
+        "day entrada saida"
+        "day diario saldo";
+      column-gap:8px;
+      row-gap:6px;
+      align-items:center;
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px;
+      margin-bottom:8px;
+    }
+    table.tf-table tr.tf-today{ border-color:var(--cold); }
+    .tf-day{ grid-area:day; width:auto; font-size:15px; font-weight:700; align-self:start; }
+    .tf-cell-entrada{ grid-area:entrada; }
+    .tf-cell-saida{ grid-area:saida; }
+    .tf-cell-diario{ grid-area:diario; }
+    .tf-cell-saldo{ grid-area:saldo; }
+    table.tf-table td{ padding:0; }
+    table.tf-table td[data-label]::before{
+      content:attr(data-label);
+      display:block;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      color:var(--muted);
+      margin-bottom:2px;
+    }
+    .tf-table input{ font-size:16px; padding:7px 8px; }
+    .tf-table input.tf-saldo{ padding:7px 2px; }
+    .tf-has-note::after{ top:0; right:0; }
   }
 </style>
 
@@ -1007,6 +1084,10 @@
   </div>
 </div>
 <input type="file" id="tf-avatar-input" accept="image/*" style="display:none">
+<div id="tf-calc-bar">
+  <button type="button" data-op="-">−</button>
+  <button type="button" data-op="+">+</button>
+</div>
 <div id="tf-app"><div class="tf-loading">Carregando seus lançamentos...</div></div>
 
 <script>
@@ -1076,6 +1157,47 @@
     if (profileEl && !profileEl.contains(e.target)) closeProfileMenu();
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape'){ hideCtxMenu(); closeNoteModal(); closeDeleteAccountModal(); closeChangePasswordModal(); closeProfileMenu(); } });
+
+  // Barra +/- pra celular: campos com "calculadora embutida" (soma/desconto direto no
+  // campo, ex. "50,00-12,50+8") dependem de digitar +/-, mas o teclado numérico do
+  // celular (inputmode="decimal") costuma não ter esses símbolos. A barra aparece
+  // fixa embaixo da tela (só em telas touch, via CSS "pointer: coarse") enquanto um
+  // desses campos está focado, e insere o símbolo na posição do cursor.
+  const _calcBar = document.getElementById('tf-calc-bar');
+  let _calcActiveInput = null;
+  function isCalcInput(el){
+    return el && el.tagName === 'INPUT' && (el.hasAttribute('data-d') || el.id === 'tf-opening-input');
+  }
+  document.addEventListener('focusin', e => {
+    if (isCalcInput(e.target)){
+      _calcActiveInput = e.target;
+      _calcBar.classList.add('is-visible');
+    }
+  });
+  document.addEventListener('focusout', e => {
+    if (e.target === _calcActiveInput){
+      setTimeout(() => {
+        if (document.activeElement !== _calcActiveInput){
+          _calcBar.classList.remove('is-visible');
+          _calcActiveInput = null;
+        }
+      }, 0);
+    }
+  });
+  _calcBar.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('pointerdown', e => e.preventDefault());
+    btn.addEventListener('click', () => {
+      if (!_calcActiveInput) return;
+      const input = _calcActiveInput;
+      const op = btn.dataset.op;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      input.value = input.value.slice(0, start) + op + input.value.slice(end);
+      const pos = start + op.length;
+      input.setSelectionRange(pos, pos);
+      input.dispatchEvent(new Event('input', { bubbles:true }));
+    });
+  });
 
   document.getElementById('tf-ctx-add-note').onclick = (e) => {
     e.stopPropagation();
@@ -2317,10 +2439,10 @@
       totalDiario += e.diario||0;
       const isToday = isCurrentMonth && d === today.getDate();
 
-      function cellHtml(field, val){
+      function cellHtml(field, val, label){
         const note = getNote(mo, d, field);
         const hasNote = !!note;
-        return `<td class="tf-notable ${hasNote ? 'tf-has-note' : ''}">
+        return `<td class="tf-notable tf-cell-${field} ${hasNote ? 'tf-has-note' : ''}" data-label="${label}">
           <input type="text" inputmode="decimal"
             value="${val?val:''}" placeholder="—"
             data-d="${d}" data-f="${field}"
@@ -2331,10 +2453,10 @@
 
       rows += `<tr class="${isToday?'tf-today':''}">
         <td class="tf-day">${d}</td>
-        ${cellHtml('entrada', e.entrada)}
-        ${cellHtml('saida', e.saida)}
-        ${cellHtml('diario', e.diario)}
-        <td><input class="tf-saldo" style="color:${saldoColorVar(saldo)}" value="${fmtBRL(saldo)}" readonly></td>
+        ${cellHtml('entrada', e.entrada, 'Entrada')}
+        ${cellHtml('saida', e.saida, 'Saída')}
+        ${cellHtml('diario', e.diario, 'Diário')}
+        <td class="tf-cell-saldo" data-label="Saldo"><input class="tf-saldo" style="color:${saldoColorVar(saldo)}" value="${fmtBRL(saldo)}" readonly></td>
       </tr>`;
     }
 
