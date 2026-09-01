@@ -838,12 +838,14 @@
   .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
 
   /* Célula clicável de Diário/Saída (itemização por categoria) */
+  .tf-cell-diario, .tf-cell-saida{ text-align:right; }
   .tf-daycell{
     cursor:pointer;
     border-radius:6px;
     padding:2px 4px;
     display:inline-flex;
     align-items:center;
+    color:var(--text);
   }
   .tf-daycell:hover{ background:var(--surface-2); }
   .tf-daycell.tf-empty{ color:var(--muted); }
@@ -851,8 +853,10 @@
     display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; flex-shrink:0;
   }
 
-  /* Modal de itens de gasto (reaproveita a caixa do modal de nota) */
-  .tf-gasto-modal-box{ width:320px; }
+  /* Modal de itens de gasto (reaproveita a caixa do modal de nota). Fora de #tf-app, que é
+     quem define color:var(--text) — sem essa declaração aqui, o texto cai no preto padrão
+     do navegador (body nunca define color), invisível no modo escuro. */
+  .tf-gasto-modal-box{ width:320px; color:var(--text); }
   .tf-popover-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .tf-popover-title{ font-size:12.5px; font-weight:600; color:var(--text); }
   .tf-popover-close{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; }
@@ -861,9 +865,9 @@
   .tf-item-row{ display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
   .tf-item-row:last-of-type{ border-bottom:none; }
   .tf-item-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .tf-item-desc{ flex:1; font-size:12.5px; min-width:0; overflow-wrap:break-word; }
+  .tf-item-desc{ flex:1; font-size:12.5px; min-width:0; overflow-wrap:break-word; color:var(--text); }
   .tf-item-desc small{ display:block; color:var(--muted); font-size:11px; margin-top:1px; }
-  .tf-item-valor{ font-size:12.5px; font-weight:600; white-space:nowrap; }
+  .tf-item-valor{ font-size:12.5px; font-weight:600; white-space:nowrap; color:var(--text); }
   .tf-item-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0 2px; flex-shrink:0; }
   .tf-item-remove:hover{ color:var(--hot); }
   .tf-popover-total{ display:flex; justify-content:space-between; font-size:13px; font-weight:600; padding:10px 0 4px; }
@@ -890,7 +894,7 @@
   .tf-period-tabs button.active{ color:var(--text); border-color:var(--cold); background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-cat-ranked{ display:flex; flex-direction:column; gap:10px; }
   .tf-cat-row{ display:grid; grid-template-columns:110px 1fr 84px; align-items:center; gap:10px; font-size:12.5px; }
-  .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
   .tf-cat-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .tf-cat-bar-track{ background:var(--surface-2); border-radius:5px; height:7px; overflow:hidden; }
   .tf-cat-bar-fill{ height:100%; border-radius:5px; }
