@@ -786,8 +786,8 @@
   .tf-profile-menu-danger{ color:var(--hot); }
   .tf-profile-menu-danger:hover{ background:color-mix(in srgb, var(--hot) 12%, transparent); }
   .tf-profile-menu-sep{ height:1px; background:var(--line); margin:5px 0; }
-  /* Modal de edição de nota / exclusão de conta / alterar senha */
-  #tf-note-modal, #tf-delete-account-modal, #tf-change-password-modal{
+  /* Modal de edição de nota / exclusão de conta / alterar senha / itens de gasto */
+  #tf-note-modal, #tf-delete-account-modal, #tf-change-password-modal, #tf-gasto-modal{
     position:fixed;
     inset:0;
     background:rgba(0,0,0,0.55);
@@ -796,7 +796,7 @@
     align-items:center;
     justify-content:center;
   }
-  #tf-note-modal.open, #tf-delete-account-modal.open, #tf-change-password-modal.open{ display:flex; }
+  #tf-note-modal.open, #tf-delete-account-modal.open, #tf-change-password-modal.open, #tf-gasto-modal.open{ display:flex; }
   .tf-note-modal-box{
     background:var(--surface);
     border:1px solid var(--line);
@@ -836,6 +836,66 @@
   .tf-note-modal-actions .save{ background:transparent; color:var(--cold); border-color:var(--cold); font-weight:600; }
   .tf-note-modal-actions .save:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
+
+  /* Célula clicável de Diário/Saída (itemização por categoria) */
+  .tf-daycell{
+    cursor:pointer;
+    border-radius:6px;
+    padding:2px 4px;
+    display:inline-flex;
+    align-items:center;
+  }
+  .tf-daycell:hover{ background:var(--surface-2); }
+  .tf-daycell.tf-empty{ color:var(--muted); }
+  .tf-chipdot{
+    display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; flex-shrink:0;
+  }
+
+  /* Modal de itens de gasto (reaproveita a caixa do modal de nota) */
+  .tf-gasto-modal-box{ width:320px; }
+  .tf-popover-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .tf-popover-title{ font-size:12.5px; font-weight:600; color:var(--text); }
+  .tf-popover-close{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; }
+  .tf-popover-close:hover{ color:var(--text); }
+  #tf-gasto-items{ max-height:260px; overflow-y:auto; }
+  .tf-item-row{ display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .tf-item-row:last-of-type{ border-bottom:none; }
+  .tf-item-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .tf-item-desc{ flex:1; font-size:12.5px; min-width:0; overflow-wrap:break-word; }
+  .tf-item-desc small{ display:block; color:var(--muted); font-size:11px; margin-top:1px; }
+  .tf-item-valor{ font-size:12.5px; font-weight:600; white-space:nowrap; }
+  .tf-item-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0 2px; flex-shrink:0; }
+  .tf-item-remove:hover{ color:var(--hot); }
+  .tf-popover-total{ display:flex; justify-content:space-between; font-size:13px; font-weight:600; padding:10px 0 4px; }
+  .tf-additem{ display:flex; gap:6px; margin-top:10px; }
+  .tf-additem input[type=text]{
+    flex:1; min-width:0; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:6px; padding:6px 8px; font-family:inherit; font-size:12px;
+  }
+  .tf-additem select{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:6px; padding:6px 6px; font-family:inherit; font-size:12px; max-width:96px;
+  }
+  .tf-additem button{
+    background:var(--cold); border:none; color:var(--bg); font-weight:600;
+    border-radius:6px; padding:0 12px; font-size:14px; cursor:pointer; flex-shrink:0;
+  }
+
+  /* Dashboard: "Para onde vai seu dinheiro" */
+  .tf-period-tabs{ display:flex; gap:6px; margin-bottom:14px; }
+  .tf-period-tabs button{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--muted);
+    border-radius:7px; padding:5px 11px; font-family:inherit; font-size:12px; cursor:pointer;
+  }
+  .tf-period-tabs button.active{ color:var(--text); border-color:var(--cold); background:color-mix(in srgb, var(--cold) 12%, transparent); }
+  .tf-cat-ranked{ display:flex; flex-direction:column; gap:10px; }
+  .tf-cat-row{ display:grid; grid-template-columns:110px 1fr 84px; align-items:center; gap:10px; font-size:12.5px; }
+  .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tf-cat-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .tf-cat-bar-track{ background:var(--surface-2); border-radius:5px; height:7px; overflow:hidden; }
+  .tf-cat-bar-fill{ height:100%; border-radius:5px; }
+  .tf-cat-value{ text-align:right; color:var(--text); font-weight:600; white-space:nowrap; }
+  .tf-cat-pct{ color:var(--muted); font-weight:400; font-size:11px; margin-left:4px; }
   .tf-foot-row td{
     font-weight:600;
     border-top:1px solid var(--line);
@@ -1041,6 +1101,11 @@
     .tf-table input{ font-size:16px; padding:7px 8px; }
     .tf-table input.tf-saldo{ padding:7px 2px; }
     .tf-has-note::after{ top:0; right:0; }
+
+    /* Ranking de categorias: nome mais estreito pra caber a barra numa tela pequena */
+    .tf-cat-row{ grid-template-columns:82px 1fr 74px; gap:6px; font-size:11.5px; }
+    .tf-cat-value{ font-size:11.5px; }
+    .tf-cat-pct{ display:block; margin-left:0; }
   }
 </style>
 
@@ -1058,6 +1123,25 @@
       <button class="cancel" id="tf-note-cancel">Cancelar</button>
       <button class="save" id="tf-note-save">Salvar nota</button>
     </div>
+  </div>
+</div>
+<div id="tf-gasto-modal">
+  <div class="tf-note-modal-box tf-gasto-modal-box">
+    <div class="tf-popover-head">
+      <span class="tf-popover-title" id="tf-gasto-modal-title"></span>
+      <button class="tf-popover-close" id="tf-gasto-modal-close">✕</button>
+    </div>
+    <div id="tf-gasto-items"></div>
+    <div class="tf-popover-total">
+      <span>Total do dia</span>
+      <span id="tf-gasto-total"></span>
+    </div>
+    <form class="tf-additem" id="tf-gasto-form">
+      <input type="text" id="tf-gasto-desc" placeholder="Descrição (opcional)">
+      <input type="text" inputmode="decimal" id="tf-gasto-valor" placeholder="Valor" style="max-width:64px;">
+      <select id="tf-gasto-categoria"></select>
+      <button type="submit">+</button>
+    </form>
   </div>
 </div>
 <div id="tf-delete-account-modal">
@@ -1112,6 +1196,87 @@
   const SUPABASE_URL = 'https://cnlbbjntntplxexcihjx.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNubGJiam50bnRwbHhleGNpaGp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NzU2ODgsImV4cCI6MjEwMjA1MTY4OH0.8RTvNYKfVEpBV8ygHFf_lqGSSm-O0goxiBCBewenSw8';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---- Categorização de gastos (itens de "Diário" e "Saída") ----
+  // Lista fixa no MVP — sem tela de gerenciamento de categorias.
+  const CATEGORIES = [
+    { id:'mercado',     label:'Mercado',      color:'var(--good)' },
+    { id:'transporte',  label:'Transporte',   color:'#38BDF8' },
+    { id:'alimentacao', label:'Alim. fora',   color:'var(--warm)' },
+    { id:'lazer',       label:'Lazer',        color:'#A78BFA' },
+    { id:'contas',      label:'Contas fixas', color:'var(--mid)' },
+    { id:'saude',       label:'Saúde',        color:'var(--hot)' },
+    { id:'compras',     label:'Compras',      color:'#F472B6' },
+    { id:'outros',      label:'Outros',       color:'var(--muted)' }
+  ];
+  function categoryById(id){ return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1]; }
+
+  // items: array de { id, date:'YYYY-MM-DD', tipo:'diario'|'saida', valor, categoria, descricao }.
+  // Carregado por inteiro (como months_data) — volume esperado (gastos pessoais, poucos anos)
+  // não justifica paginar/filtrar por período no servidor. byDate é um índice derivado,
+  // reconstruído a cada load/add/remove pra os totais do grid não precisarem varrer o array inteiro.
+  let txState = { items: [], byDate: {}, loaded: false };
+
+  function reindexTransactions(){
+    const byDate = {};
+    for (const it of txState.items){
+      if (!byDate[it.date]) byDate[it.date] = { diario: [], saida: [] };
+      byDate[it.date][it.tipo].push(it);
+    }
+    txState.byDate = byDate;
+  }
+
+  function dayISO(y, m, d){
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  function txItemsForDay(y, m, d, tipo){
+    const iso = dayISO(y, m, d);
+    return (txState.byDate[iso] && txState.byDate[iso][tipo]) || [];
+  }
+
+  function txSumForDay(y, m, d, tipo){
+    return txItemsForDay(y, m, d, tipo).reduce((s, it) => s + it.valor, 0);
+  }
+
+  async function loadTransactions(){
+    try{
+      const { data, error } = await supabase.from('transactions').select('*').eq('user_id', session.user.id).order('date');
+      if (error) throw error;
+      txState.items = (data || []).map(row => ({ ...row, valor: Number(row.valor) }));
+      reindexTransactions();
+      txState.loaded = true;
+    } catch(e){
+      console.error('Falha ao carregar itens de gasto', e);
+      txState.items = []; txState.byDate = {}; txState.loaded = true;
+      showToast('Não foi possível carregar os itens de gasto categorizados', 'err');
+    }
+  }
+
+  async function addTransactionItem(y, m, d, tipo, valor, categoria, descricao){
+    const row = { user_id: session.user.id, date: dayISO(y,m,d), tipo, valor, categoria, descricao: descricao || null };
+    try{
+      const { data, error } = await supabase.from('transactions').insert(row).select().single();
+      if (error) throw error;
+      txState.items.push({ ...data, valor: Number(data.valor) });
+      reindexTransactions();
+    } catch(e){
+      console.error('Falha ao adicionar item de gasto', e);
+      showToast('Falha ao adicionar item — verifique sua conexão', 'err');
+    }
+  }
+
+  async function removeTransactionItem(id){
+    try{
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      if (error) throw error;
+      txState.items = txState.items.filter(it => it.id !== id);
+      reindexTransactions();
+    } catch(e){
+      console.error('Falha ao remover item de gasto', e);
+      showToast('Falha ao remover item — verifique sua conexão', 'err');
+    }
+  }
 
   // ---- Expressões e Notas ----
   function cellKey(y,m,d,field){ return `${y}-${m}-${d}-${field}`; }
@@ -1242,6 +1407,76 @@
     if (e.target === document.getElementById('tf-note-modal')) closeNoteModal();
   });
 
+  // Modal de itens de gasto categorizados (Diário/Saída)
+  document.getElementById('tf-gasto-categoria').innerHTML =
+    CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
+
+  let gastoModalTarget = null; // { y, m, d, tipo }
+
+  function renderGastoModalBody(){
+    if (!gastoModalTarget) return;
+    const { y, m, d, tipo } = gastoModalTarget;
+    const items = txItemsForDay(y, m, d, tipo);
+    const total = items.reduce((s, it) => s + it.valor, 0);
+    document.getElementById('tf-gasto-items').innerHTML = items.length
+      ? items.map(it => `
+        <div class="tf-item-row">
+          <span class="tf-item-dot" style="background:${categoryById(it.categoria).color}"></span>
+          <span class="tf-item-desc">${(it.descricao || categoryById(it.categoria).label).replace(/</g,'&lt;')}<small>${categoryById(it.categoria).label}</small></span>
+          <span class="tf-item-valor">${fmtBRL(it.valor)}</span>
+          <button class="tf-item-remove" data-remove-item="${it.id}">✕</button>
+        </div>`).join('')
+      : `<div class="tf-hint" style="padding:8px 0;">Nenhum item ainda — adicione abaixo.</div>`;
+    document.getElementById('tf-gasto-total').textContent = fmtBRL(total);
+    document.getElementById('tf-gasto-items').querySelectorAll('[data-remove-item]').forEach(btn => {
+      btn.onclick = async () => {
+        await removeTransactionItem(btn.dataset.removeItem);
+        renderGastoModalBody();
+        render();
+      };
+    });
+  }
+
+  function openGastoModal(y, m, d, tipo){
+    gastoModalTarget = { y, m, d, tipo };
+    const label = tipo === 'diario' ? 'Gastos' : 'Saídas';
+    document.getElementById('tf-gasto-modal-title').textContent = `${label} de ${d} de ${MONTH_NAMES[m]}`;
+    document.getElementById('tf-gasto-desc').value = '';
+    document.getElementById('tf-gasto-valor').value = '';
+    renderGastoModalBody();
+    document.getElementById('tf-gasto-modal').classList.add('open');
+    setTimeout(() => document.getElementById('tf-gasto-desc').focus(), 50);
+  }
+
+  function closeGastoModal(){
+    gastoModalTarget = null;
+    document.getElementById('tf-gasto-modal').classList.remove('open');
+  }
+
+  document.getElementById('tf-gasto-modal-close').onclick = closeGastoModal;
+  document.getElementById('tf-gasto-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('tf-gasto-modal')) closeGastoModal();
+  });
+  document.getElementById('tf-gasto-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!gastoModalTarget) return;
+    const valorRaw = document.getElementById('tf-gasto-valor').value;
+    const valor = evalSum(valorRaw);
+    if (!valor || valor <= 0){
+      showToast('Digite um valor válido pro item', 'err');
+      return;
+    }
+    const { y, m, d, tipo } = gastoModalTarget;
+    const descricao = document.getElementById('tf-gasto-desc').value.trim();
+    const categoria = document.getElementById('tf-gasto-categoria').value;
+    await addTransactionItem(y, m, d, tipo, valor, categoria, descricao);
+    document.getElementById('tf-gasto-desc').value = '';
+    document.getElementById('tf-gasto-valor').value = '';
+    renderGastoModalBody();
+    render();
+    document.getElementById('tf-gasto-desc').focus();
+  });
+
   // Modal de exclusão de conta
   document.getElementById('tf-delete-account-cancel').onclick = closeDeleteAccountModal;
   document.getElementById('tf-delete-account-confirm').onclick = confirmDeleteAccount;
@@ -1323,6 +1558,7 @@
       return;
     }
     await loadData();
+    await loadTransactions();
     await loadInvestments();
   }
 
@@ -1331,6 +1567,7 @@
     session = null;
     state = { months: {}, loaded: false, error: null };
     invState = { assets: {}, reserve: {}, loaded: false };
+    txState = { items: [], byDate: {}, loaded: false };
     activeTab = 'diario';
     renderLogin();
   }
@@ -1370,6 +1607,8 @@
         .update({ months_data: {}, investments_data: {} })
         .eq('user_id', session.user.id);
       if (error) throw error;
+      const { error: txError } = await supabase.from('transactions').delete().eq('user_id', session.user.id);
+      if (txError) throw txError;
     } catch(e){
       console.error('Falha ao apagar dados', e);
       showToast('Falha ao apagar seus dados — tente de novo', 'err');
@@ -1377,6 +1616,7 @@
     }
     state.months = {};
     invState = { assets: {}, reserve: JSON.parse(JSON.stringify(SEED_INVESTMENTS.reserve)), loaded: true };
+    txState = { items: [], byDate: {}, loaded: true };
     render();
     showToast('Todos os seus dados foram apagados');
   }
@@ -1718,6 +1958,7 @@
   let view = clampToMin(today.getFullYear(), today.getMonth());
   let confirmingReset = false;
   let monthPickerOpen = false; // se o seletor direto de mês/ano está aberto no lugar do rótulo
+  let dashCatPeriod = 'month'; // período do ranking "Para onde vai seu dinheiro": month | 3m | year
 
   function isAtMin(y,m){ return y === MIN_YEAR && m === MIN_MONTH; }
 
@@ -1759,6 +2000,7 @@
     if (data.session){
       session = { user: data.session.user, email: data.session.user.email };
       await loadData();
+      await loadTransactions();
       await loadInvestments();
     } else {
       renderLanding();
@@ -1837,8 +2079,16 @@
   function emptyMonth(opening){
     return { openingBalance: opening || 0, days: {} };
   }
-  function dayEntry(monthObj, d){
-    return monthObj.days[d] || { entrada:0, saida:0, diario:0 };
+  // diario/saida deixaram de ser números no JSON — são derivados somando os itens
+  // categorizados de `transactions` daquele dia (ver txSumForDay). Por isso dayEntry e
+  // computeSaldoForDay agora precisam de y,m além do monthObj, pra montar a data ISO.
+  function dayEntry(monthObj, d, y, m){
+    const base = monthObj.days[d] || { entrada:0 };
+    return {
+      entrada: base.entrada || 0,
+      saida: txSumForDay(y, m, d, 'saida'),
+      diario: txSumForDay(y, m, d, 'diario')
+    };
   }
 
   // Saldo de abertura é sempre calculado a partir do saldo final do mês anterior,
@@ -1852,7 +2102,7 @@
     const prevOpening = getOpeningBalance(py, pm);
     const prevKey = monthKey(py, pm);
     const prevMonthObj = state.months[prevKey] || { days: {} };
-    return computeSaldoForDay(prevMonthObj, daysInMonth(py, pm), prevOpening);
+    return computeSaldoForDay(prevMonthObj, daysInMonth(py, pm), prevOpening, py, pm);
   }
 
   function getMonth(y,m, createIfMissing){
@@ -1863,10 +2113,10 @@
     return state.months[key];
   }
 
-  function computeSaldoForDay(monthObj, d, opening){
+  function computeSaldoForDay(monthObj, d, opening, y, m){
     let s = opening || 0;
     for(let i=1;i<=d;i++){
-      const e = dayEntry(monthObj,i);
+      const e = dayEntry(monthObj,i,y,m);
       s += (e.entrada||0) - (e.saida||0) - (e.diario||0);
     }
     return s;
@@ -2084,7 +2334,8 @@
     const payload = {
       exportedAt: new Date().toISOString(),
       months: state.months,
-      investments: { assets: invState.assets, reserve: invState.reserve }
+      investments: { assets: invState.assets, reserve: invState.reserve },
+      transactions: txState.items.map(({ id, date, tipo, valor, categoria, descricao }) => ({ date, tipo, valor, categoria, descricao }))
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2102,7 +2353,7 @@
     try{
       const text = await file.text();
       const data = JSON.parse(text);
-      if (!data.months && !data.investments) throw new Error('formato inválido');
+      if (!data.months && !data.investments && !data.transactions) throw new Error('formato inválido');
       if (data.months) state.months = data.months;
       if (data.investments){
         invState.assets = data.investments.assets || {};
@@ -2110,6 +2361,19 @@
       }
       await saveData(true);
       await saveInvestments(true);
+      // Itens de gasto categorizados: substitui tudo (apaga o que existe na conta e insere
+      // o que veio no arquivo), mesmo padrão de "importar = substituir" já usado pra
+      // months/investments — ids não são reaproveitados, o banco gera novos.
+      if (data.transactions){
+        const { error: delError } = await supabase.from('transactions').delete().eq('user_id', session.user.id);
+        if (delError) throw delError;
+        if (data.transactions.length){
+          const rows = data.transactions.map(t => ({ user_id: session.user.id, date: t.date, tipo: t.tipo, valor: t.valor, categoria: t.categoria, descricao: t.descricao || null }));
+          const { error: insError } = await supabase.from('transactions').insert(rows);
+          if (insError) throw insError;
+        }
+      }
+      await loadTransactions();
       showToast('Backup importado');
       render();
     } catch(e){
@@ -2392,10 +2656,26 @@
     }, 30);
   }
 
-  function resetMonth(){
+  async function resetMonth(){
     const key = monthKey(view.year, view.month);
     delete state.months[key];
     confirmingReset = false;
+    // diario/saida do mês vivem em `transactions`, não em months_data — "Limpar mês"
+    // precisa apagar os itens categorizados do mês também, senão os totais voltam a
+    // aparecer no grid (derivados) mesmo depois do "reset".
+    const monthPrefix = key + '-';
+    const idsToRemove = txState.items.filter(it => it.date.startsWith(monthPrefix)).map(it => it.id);
+    if (idsToRemove.length){
+      try{
+        const { error } = await supabase.from('transactions').delete().in('id', idsToRemove);
+        if (error) throw error;
+        txState.items = txState.items.filter(it => !it.date.startsWith(monthPrefix));
+        reindexTransactions();
+      } catch(e){
+        console.error('Falha ao apagar itens de gasto do mês', e);
+        showToast('Falha ao apagar os gastos categorizados do mês — tente de novo', 'err');
+      }
+    }
     saveData();
     render();
   }
@@ -2430,11 +2710,22 @@
       ? 'Você ainda não exportou um backup.'
       : (daysSinceBackup > BACKUP_REMINDER_DAYS ? `Faz ${daysSinceBackup} dias que você não exporta um backup.` : null);
 
+    function gastoCellHtml(tipo, d, val, label){
+      const items = txItemsForDay(year, month, d, tipo);
+      const hasItems = items.length > 0;
+      const dotColor = hasItems ? categoryById(items[0].categoria).color : '';
+      return `<td class="tf-cell-${tipo}" data-label="${label}">
+        <span class="tf-daycell ${hasItems ? '' : 'tf-empty'}" data-open-gasto data-d="${d}" data-tipo="${tipo}">
+          ${hasItems ? `<span class="tf-chipdot" style="background:${dotColor}"></span>${fmtBRL(val)}` : '+ adicionar'}
+        </span>
+      </td>`;
+    }
+
     let totalEntrada=0, totalSaida=0, totalDiario=0;
     let rows = '';
     for(let d=1; d<=nd; d++){
-      const e = dayEntry(mo,d);
-      const saldo = computeSaldoForDay(mo,d,opening);
+      const e = dayEntry(mo,d,year,month);
+      const saldo = computeSaldoForDay(mo,d,opening,year,month);
       totalEntrada += e.entrada||0;
       totalSaida += e.saida||0;
       totalDiario += e.diario||0;
@@ -2455,17 +2746,17 @@
       rows += `<tr class="${isToday?'tf-today':''}">
         <td class="tf-day">${d}</td>
         ${cellHtml('entrada', e.entrada, 'Entrada')}
-        ${cellHtml('saida', e.saida, 'Saída')}
-        ${cellHtml('diario', e.diario, 'Diário')}
+        ${gastoCellHtml('saida', d, e.saida, 'Saída')}
+        ${gastoCellHtml('diario', d, e.diario, 'Diário')}
         <td class="tf-cell-saldo" data-label="Saldo"><input class="tf-saldo" style="color:${saldoColorVar(saldo)}" value="${fmtBRL(saldo)}" readonly></td>
       </tr>`;
     }
 
-    const finalSaldo = computeSaldoForDay(mo, nd, opening);
+    const finalSaldo = computeSaldoForDay(mo, nd, opening,year,month);
     const saidaTotal = totalSaida + totalDiario;
     const performance = totalEntrada - saidaTotal;
     const refDay = isCurrentMonth ? Math.min(today.getDate(), nd) : nd;
-    const gaugeSaldo = computeSaldoForDay(mo, refDay, opening);
+    const gaugeSaldo = computeSaldoForDay(mo, refDay, opening,year,month);
     const t = gaugeColorStop(gaugeSaldo);
     const maskHeight = (1 - t) * 100;
 
@@ -2615,6 +2906,10 @@
       });
       inp.addEventListener('touchend', () => clearTimeout(_touchTimer));
       inp.addEventListener('touchmove', () => clearTimeout(_touchTimer));
+    });
+
+    app.querySelectorAll('[data-open-gasto]').forEach(cell => {
+      cell.onclick = () => openGastoModal(year, month, +cell.dataset.d, cell.dataset.tipo);
     });
 
     wireTabs();
@@ -3129,25 +3424,59 @@
   }
 
   function getMonthlySeries(){
-    const keys = Object.keys(state.months).filter(k => Object.keys(state.months[k].days||{}).length > 0).sort();
+    // União de meses com lançamento de entrada/saldo (state.months) e meses que só têm
+    // itens categorizados de diario/saida (transactions) — um mês sem nenhuma entrada
+    // registrada ainda precisa aparecer na série se o usuário só andou lançando gastos.
+    const monthsWithDays = Object.keys(state.months).filter(k => Object.keys(state.months[k].days||{}).length > 0);
+    const monthsWithTx = txState.items.map(it => it.date.slice(0,7));
+    const keys = Array.from(new Set([...monthsWithDays, ...monthsWithTx])).sort();
     return keys.map(key => {
       const [y, mm] = key.split('-').map(Number);
       const m = mm - 1;
-      const mo = state.months[key];
+      const mo = state.months[key] || { days: {} };
       const nd = daysInMonth(y, m);
       const opening = getOpeningBalance(y, m);
       let totalEntrada=0, totalSaida=0, totalDiario=0;
       for (let d=1; d<=nd; d++){
-        const e = dayEntry(mo, d);
+        const e = dayEntry(mo, d, y, m);
         totalEntrada += e.entrada||0; totalSaida += e.saida||0; totalDiario += e.diario||0;
       }
-      const saldoFinal = computeSaldoForDay(mo, nd, opening);
+      const saldoFinal = computeSaldoForDay(mo, nd, opening, y, m);
       const saidaTotal = totalSaida + totalDiario;
       const performance = totalEntrada - saidaTotal;
       const isFuture = (y > today.getFullYear()) || (y === today.getFullYear() && m > today.getMonth());
       const dateEnd = `${y}-${String(mm).padStart(2,'0')}-${String(nd).padStart(2,'0')}`;
       return { key, y, m, saldoFinal, saidaTotal, performance, isFuture, dateEnd };
     });
+  }
+
+  // Ranking de categorias pra seção "Para onde vai seu dinheiro" do dashboard — soma
+  // diario + saida juntos (pro usuário é o mesmo tipo de informação, independente de
+  // qual célula o gasto veio).
+  function getCategoryBreakdown(period){
+    const y = today.getFullYear(), m = today.getMonth();
+    let startISO;
+    if (period === '3m'){
+      let sy = y, sm = m - 2;
+      while (sm < 0){ sm += 12; sy -= 1; }
+      startISO = dayISO(sy, sm, 1);
+    } else if (period === 'year'){
+      startISO = dayISO(y, 0, 1);
+    } else {
+      startISO = dayISO(y, m, 1);
+    }
+    const endISO = todayISO();
+    const totals = {};
+    for (const it of txState.items){
+      if (it.date < startISO || it.date > endISO) continue;
+      totals[it.categoria] = (totals[it.categoria]||0) + it.valor;
+    }
+    const total = Object.values(totals).reduce((s,v) => s+v, 0);
+    return CATEGORIES
+      .map(c => ({ ...c, value: totals[c.id]||0 }))
+      .filter(c => c.value > 0)
+      .sort((a,b) => b.value - a.value)
+      .map(c => ({ ...c, pct: total > 0 ? (c.value/total)*100 : 0 }));
   }
 
   function renderDashboard(){
@@ -3190,9 +3519,9 @@
 
     const curKey = monthKey(today.getFullYear(), today.getMonth());
     let ledgerToday = realSeries.length ? realSeries[realSeries.length-1].saldoFinal : 0;
-    if (state.months[curKey]){
+    if (state.months[curKey] || txState.items.some(it => it.date.slice(0,7) === curKey)){
       const openingCur = getOpeningBalance(today.getFullYear(), today.getMonth());
-      ledgerToday = computeSaldoForDay(state.months[curKey], today.getDate(), openingCur);
+      ledgerToday = computeSaldoForDay(state.months[curKey] || { days:{} }, today.getDate(), openingCur, today.getFullYear(), today.getMonth());
     }
     const patrimonioTotal = ledgerToday + totalAtual + reserveValue;
 
@@ -3232,6 +3561,16 @@
         <span class="tf-legend-label">${seg.label}</span>
         <span class="tf-legend-value">${fmtBRL(seg.value)} · ${((seg.value/pieTotal)*100).toFixed(1)}%</span>
       </div>`).join('');
+
+    const catBreakdown = getCategoryBreakdown(dashCatPeriod);
+    const catRowsHtml = catBreakdown.length
+      ? catBreakdown.map(c => `
+        <div class="tf-cat-row">
+          <span class="tf-cat-name"><span class="tf-cat-dot" style="background:${c.color}"></span>${c.label}</span>
+          <span class="tf-cat-bar-track"><span class="tf-cat-bar-fill" style="width:${c.pct}%;background:${c.color}"></span></span>
+          <span class="tf-cat-value">${fmtBRL(c.value)}<span class="tf-cat-pct">${c.pct.toFixed(0)}%</span></span>
+        </div>`).join('')
+      : `<div class="tf-hint">Nenhum gasto categorizado nesse período ainda.</div>`;
 
     app.innerHTML = `
       <div class="tf-head">
@@ -3279,6 +3618,16 @@
         </div>
       </div>
 
+      <div class="tf-chart-box" style="margin-bottom:20px;">
+        <div class="tf-chart-title">Para onde vai seu dinheiro</div>
+        <div class="tf-period-tabs">
+          <button data-cat-period="month" class="${dashCatPeriod==='month'?'active':''}">Mês atual</button>
+          <button data-cat-period="3m" class="${dashCatPeriod==='3m'?'active':''}">Últimos 3 meses</button>
+          <button data-cat-period="year" class="${dashCatPeriod==='year'?'active':''}">Ano</button>
+        </div>
+        <div class="tf-cat-ranked">${catRowsHtml}</div>
+      </div>
+
       <div class="tf-dash-section">
         <div class="tf-dash-section-title">Indicadores</div>
         <div class="tf-indicators">
@@ -3309,6 +3658,10 @@
         </div>
       </div>
     `;
+
+    app.querySelectorAll('[data-cat-period]').forEach(btn => {
+      btn.onclick = () => { dashCatPeriod = btn.dataset.catPeriod; render(); };
+    });
 
     wireTabs();
   }
