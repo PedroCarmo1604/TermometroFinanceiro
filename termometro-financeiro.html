@@ -837,17 +837,23 @@
   .tf-note-modal-actions .save:hover{ background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-note-modal-actions .cancel{ background:none; color:var(--muted); }
 
-  /* Célula clicável de Diário/Saída (itemização por categoria) */
-  .tf-cell-diario, .tf-cell-saida{ text-align:right; }
+  /* Célula clicável de Diário/Saída (itemização por categoria) — mesma "caixa" visual dos
+     inputs de Entrada/Saldo (largura cheia, fundo, borda), só que clicável em vez de digitável. */
   .tf-daycell{
     cursor:pointer;
+    width:100%;
+    box-sizing:border-box;
+    background:var(--bg);
+    border:1px solid var(--line);
     border-radius:6px;
-    padding:2px 4px;
-    display:inline-flex;
+    padding:4px 6px;
+    display:flex;
     align-items:center;
+    justify-content:flex-end;
     color:var(--text);
+    font-size:12.5px;
   }
-  .tf-daycell:hover{ background:var(--surface-2); }
+  .tf-daycell:hover{ background:var(--surface-2); border-color:var(--cold); }
   .tf-daycell.tf-empty{ color:var(--muted); }
   .tf-chipdot{
     display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; flex-shrink:0;
