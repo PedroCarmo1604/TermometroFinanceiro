@@ -851,6 +851,7 @@
     align-items:center;
     justify-content:flex-end;
     color:var(--text);
+    font-family:'Inter', sans-serif;
     font-size:12.5px;
   }
   .tf-daycell:hover{ background:var(--surface-2); border-color:var(--cold); }
@@ -860,35 +861,38 @@
   }
 
   /* Modal de itens de gasto (reaproveita a caixa do modal de nota). Fora de #tf-app, que é
-     quem define color:var(--text) — sem essa declaração aqui, o texto cai no preto padrão
-     do navegador (body nunca define color), invisível no modo escuro. */
-  .tf-gasto-modal-box{ width:320px; color:var(--text); }
-  .tf-popover-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-  .tf-popover-title{ font-size:12.5px; font-weight:600; color:var(--text); }
-  .tf-popover-close{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:2px 4px; }
+     quem define color:var(--text) e a fonte Inter — sem essas declarações aqui, o texto cai
+     no preto/fonte padrão do navegador (body nunca define nenhum dos dois), destoando do
+     resto do app. font-family aqui cobre os <input>/<select> de baixo via font-family:inherit
+     (campos de formulário não herdam fonte do ancestral por padrão do navegador). Modal maior
+     e com textos maiores que o padrão dos outros modais, pra facilitar a leitura dos itens. */
+  .tf-gasto-modal-box{ width:400px; padding:24px; color:var(--text); font-family:'Inter', system-ui, sans-serif; }
+  .tf-popover-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .tf-popover-title{ font-size:14.5px; font-weight:600; color:var(--text); }
+  .tf-popover-close{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:17px; line-height:1; padding:2px 4px; }
   .tf-popover-close:hover{ color:var(--text); }
-  #tf-gasto-items{ max-height:260px; overflow-y:auto; }
-  .tf-item-row{ display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+  #tf-gasto-items{ max-height:320px; overflow-y:auto; }
+  .tf-item-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
   .tf-item-row:last-of-type{ border-bottom:none; }
-  .tf-item-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .tf-item-desc{ flex:1; font-size:12.5px; min-width:0; overflow-wrap:break-word; color:var(--text); }
-  .tf-item-desc small{ display:block; color:var(--muted); font-size:11px; margin-top:1px; }
-  .tf-item-valor{ font-size:12.5px; font-weight:600; white-space:nowrap; color:var(--text); }
-  .tf-item-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0 2px; flex-shrink:0; }
+  .tf-item-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .tf-item-desc{ flex:1; font-size:14px; min-width:0; overflow-wrap:break-word; color:var(--text); }
+  .tf-item-desc small{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  .tf-item-valor{ font-size:14px; font-weight:600; white-space:nowrap; color:var(--text); }
+  .tf-item-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:0 2px; flex-shrink:0; }
   .tf-item-remove:hover{ color:var(--hot); }
-  .tf-popover-total{ display:flex; justify-content:space-between; font-size:13px; font-weight:600; padding:10px 0 4px; }
-  .tf-additem{ display:flex; gap:6px; margin-top:10px; }
+  .tf-popover-total{ display:flex; justify-content:space-between; font-size:14.5px; font-weight:600; padding:12px 0 6px; }
+  .tf-additem{ display:flex; gap:8px; margin-top:12px; }
   .tf-additem input[type=text]{
     flex:1; min-width:0; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    border-radius:6px; padding:6px 8px; font-family:inherit; font-size:12px;
+    border-radius:6px; padding:8px 10px; font-family:inherit; font-size:13.5px;
   }
   .tf-additem select{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    border-radius:6px; padding:6px 6px; font-family:inherit; font-size:12px; max-width:96px;
+    border-radius:6px; padding:8px 6px; font-family:inherit; font-size:13.5px; max-width:112px;
   }
   .tf-additem button{
     background:var(--cold); border:none; color:var(--bg); font-weight:600;
-    border-radius:6px; padding:0 12px; font-size:14px; cursor:pointer; flex-shrink:0;
+    border-radius:6px; padding:0 14px; font-size:16px; cursor:pointer; flex-shrink:0; font-family:inherit;
   }
 
   /* Dashboard: "Para onde vai seu dinheiro" */
@@ -900,11 +904,11 @@
   .tf-period-tabs button.active{ color:var(--text); border-color:var(--cold); background:color-mix(in srgb, var(--cold) 12%, transparent); }
   .tf-cat-ranked{ display:flex; flex-direction:column; gap:10px; }
   .tf-cat-row{ display:grid; grid-template-columns:110px 1fr 84px; align-items:center; gap:10px; font-size:12.5px; }
-  .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
+  .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-family:'Inter', sans-serif; }
   .tf-cat-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .tf-cat-bar-track{ background:var(--surface-2); border-radius:5px; height:7px; overflow:hidden; }
   .tf-cat-bar-fill{ height:100%; border-radius:5px; }
-  .tf-cat-value{ text-align:right; color:var(--text); font-weight:600; white-space:nowrap; }
+  .tf-cat-value{ text-align:right; color:var(--text); font-weight:600; white-space:nowrap; font-family:'Inter', sans-serif; }
   .tf-cat-pct{ color:var(--muted); font-weight:400; font-size:11px; margin-left:4px; }
   .tf-foot-row td{
     font-weight:600;
