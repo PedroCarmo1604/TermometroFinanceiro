@@ -4,9 +4,10 @@ Este documento explica, em linguagem de negócio (não de código), as regras qu
 
 ## 1. Diário — saldo do dia e do mês
 
-**A ideia central**: cada dia do mês tem três campos que você preenche — Entrada, Saída, Diário (gastos do dia a dia) — e o app deriva o saldo a partir deles, célula por célula, acumulando ao longo do mês.
+**A ideia central**: cada dia do mês tem três campos — Entrada, Saída, Diário (gastos do dia a dia) — e o app deriva o saldo a partir deles, célula por célula, acumulando ao longo do mês.
 
 - **Saldo de um dia** = saldo de abertura do mês + soma de (Entrada − Saída − Diário) de todos os dias *até aquele dia, incluindo ele* (`computeSaldoForDay`). Ou seja, o saldo do dia 15 já embute tudo que aconteceu do dia 1 ao 15 — não é "o saldo daquele dia isolado", é o saldo acumulado.
+- **Desde 01/09/2026, Saída e Diário não são mais um número digitado direto** — cada um é a **soma dos itens categorizados** daquele dia e daquele campo (`txSumForDay`), guardados numa tabela separada (`transactions`, ver [decisoes.md](decisoes.md)). Clicar na célula abre um modal onde você lista os itens (valor + categoria + descrição opcional): mercado, transporte, lazer, etc. `computeSaldoForDay` não mudou a fórmula, só passou a buscar Saída/Diário desse lugar novo em vez do número que ficava salvo junto com Entrada. Entrada continua sendo um número único, sem itemização — só os dois campos de gasto ganharam essa granularidade.
 - **Saldo de abertura de um mês** nunca é digitado à mão (exceto no primeiro mês do histórico, a "âncora" fixada em setembro/2024) — é sempre igual ao saldo final do mês anterior, calculado recursivamente (`getOpeningBalance`). Se você editar um lançamento de março, abril/maio/junho... todos os meses seguintes recalculam a abertura automaticamente, em cascata, na próxima vez que forem abertos. Não existe um número "congelado" que pode ficar desatualizado.
 - **Performance do mês** = Entradas − Saída Total, onde Saída Total = Saída + Diário. Ou seja, "Diário" (gastos do dia a dia) conta como saída pra fins de performance, mesmo aparecendo como um pill separado na tela.
 
@@ -47,6 +48,7 @@ A reserva é modelada como duas "caixinhas" independentes, espelhando como funci
 - **Patrimônio total hoje** = saldo atual do Diário (conta corrente) + Valor atual dos investimentos + Reserva de emergência (turbo + normal). É a soma de "tudo que é seu", nas três frentes que o app acompanha.
 - O medidor visual do Dashboard usa uma escala diferente da do Diário: em vez de um limite fixo (R$1.500), a escala se ajusta ao seu próprio patrimônio (30% acima do valor atual, arredondado pra cima em milhares) — porque aqui o objetivo é mostrar proporção dentro do seu próprio patrimônio, não uma referência absoluta de "saldo do dia saudável ou não".
 - **Rentabilidade ponderada da carteira**, no Dashboard, é a mesma fórmula da aba Investimentos (`(Valor atual − Investido) ÷ Investido`), só reexibida num indicador dedicado.
+- **"Para onde vai seu dinheiro"** (`getCategoryBreakdown`, desde 01/09/2026) — soma todos os itens categorizados de Saída **e** Diário juntos (pro usuário é o mesmo tipo de gasto, não importa qual das duas células ele veio), agrupados por categoria, dentro do período escolhido (Mês atual / Últimos 3 meses / Ano — sempre contando de hoje pra trás, não meses de calendário fechados). Cada linha do ranking mostra valor em R$ e % do total do período; categorias sem nenhum gasto no período não aparecem.
 
 ## Coisas que o app *não* faz (pra não assumir por engano)
 

@@ -57,6 +57,25 @@ Adicione uma entrada nova aqui sempre que uma decisão de arquitetura for tomada
 
 ---
 
+## Itens de gasto categorizados: tabela relacional (`transactions`) em vez de `jsonb`
+
+**Contexto**: a decisão anterior ("Banco de dados: `jsonb` numa tabela única", acima) valia bem pra `months_data`/`investments_data` — payload pequeno e de tamanho previsível por mês. A feature de categorização de gastos (01/09/2026, a partir de mockup + spec do usuário) pediu algo diferente: cada dia podendo ter vários itens de gasto (valor + categoria + descrição), crescendo sem limite conforme o tempo passa — o tipo de dado que o `jsonb` de um blob só regravado por inteiro a cada save não aguenta bem.
+
+**Decisão**: os itens de Saída/Diário saíram do `months_data` e viraram uma tabela relacional própria, `transactions` (`supabase/transactions.sql`) — uma linha por item de gasto, com RLS igual à de `user_data` (`auth.uid() = user_id`). `entrada` e o resto do mês (`months_data`) continuam exatamente como estavam, em `jsonb` — essa decisão é específica pros itens de gasto, não uma reversão da decisão anterior.
+
+**Ganhos**:
+- Cada `insert`/`delete` de item é uma operação pequena e isolada, em vez de regravar o blob `months_data` inteiro a cada gasto adicionado — mais barato e sem risco de uma escrita concorrente (duas abas abertas) perder o item da outra.
+- Consulta/agregação por categoria e por período (a seção "Para onde vai seu dinheiro" do Dashboard) é uma query SQL direta (`select ... group by categoria`), em vez de precisar "abrir" um JSON — exatamente a limitação que a decisão anterior já citava como trade-off aceito.
+- Dado antigo (histórico de `diario`/`saida` numérico) foi migrado uma vez via `supabase/transactions-migration.sql`, caindo todo como categoria "outros" (sem como saber a categoria real de um gasto passado) — o usuário pode recategorizar manualmente depois, se quiser.
+
+**Perdas / trade-offs**:
+- Duas fontes de dado pro grid do Diário agora: `months_data` (entrada) e `transactions` (saída/diário) — `dayEntry`/`computeSaldoForDay` precisam combinar as duas (ver [logica-financeira.md](logica-financeira.md)), um pouco mais de complexidade de código do que "é tudo o mesmo JSON".
+- A migração dos dados reais teve uma janela de risco: lançamentos feitos entre rodar a migração SQL e o deploy do código novo seriam perdidos (não usar mais o campo antigo). Mitigado combinando o timing com o usuário e rodando os dois bem próximos.
+
+**Por que valeu a pena**: o volume de itens de gasto cresce de um jeito que `months_data`/`investments_data` nunca cresceram (potencialmente um item por gasto do dia a dia, pra sempre) — era o caso concreto que a decisão anterior já previa como motivo suficiente pra sair do `jsonb`.
+
+---
+
 ## Exclusão de conta: pendente — exige Edge Function com `service_role`
 
 **Contexto**: "Excluir dados" hoje zera `months_data`/`investments_data` (a informação financeira), mas a conta de login em si (`auth.users`) continua existindo no Supabase Auth.
