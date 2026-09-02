@@ -909,7 +909,7 @@
   .tf-cat-name{ display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-family:'Inter', sans-serif; }
   .tf-cat-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .tf-cat-bar-track{ background:var(--surface-2); border-radius:5px; height:7px; overflow:hidden; }
-  .tf-cat-bar-fill{ height:100%; border-radius:5px; }
+  .tf-cat-bar-fill{ display:block; height:100%; border-radius:5px; transition:width .5s ease; }
   .tf-cat-value{ text-align:right; color:var(--text); font-weight:600; white-space:nowrap; font-family:'Inter', sans-serif; }
   .tf-cat-pct{ color:var(--muted); font-weight:400; font-size:11px; margin-left:4px; }
   .tf-foot-row td{
@@ -3583,7 +3583,7 @@
       ? catBreakdown.map(c => `
         <div class="tf-cat-row">
           <span class="tf-cat-name"><span class="tf-cat-dot" style="background:${c.color}"></span>${c.label}</span>
-          <span class="tf-cat-bar-track"><span class="tf-cat-bar-fill" style="width:${c.pct}%;background:${c.color}"></span></span>
+          <span class="tf-cat-bar-track"><span class="tf-cat-bar-fill" data-pct="${c.pct}" style="width:0%;background:${c.color}"></span></span>
           <span class="tf-cat-value">${fmtBRL(c.value)}<span class="tf-cat-pct">${c.pct.toFixed(0)}%</span></span>
         </div>`).join('')
       : `<div class="tf-hint">Nenhum gasto categorizado nesse período ainda.</div>`;
@@ -3677,6 +3677,12 @@
 
     app.querySelectorAll('[data-cat-period]').forEach(btn => {
       btn.onclick = () => { dashCatPeriod = btn.dataset.catPeriod; render(); };
+    });
+
+    requestAnimationFrame(() => {
+      app.querySelectorAll('.tf-cat-bar-fill').forEach(el => {
+        el.style.width = el.dataset.pct + '%';
+      });
     });
 
     wireTabs();
