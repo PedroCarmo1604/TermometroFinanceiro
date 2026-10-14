@@ -882,6 +882,12 @@
   .tf-item-valor{ font-size:14px; font-weight:600; white-space:nowrap; color:var(--text); }
   .tf-item-remove{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:0 2px; flex-shrink:0; }
   .tf-item-remove:hover{ color:var(--hot); }
+  .tf-item-edit{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:0 2px; flex-shrink:0; font-family:inherit; }
+  .tf-item-edit:hover{ color:var(--cold); }
+  .tf-item-row.tf-editing{ background:var(--surface-2); border-radius:6px; padding-left:6px; padding-right:6px; }
+  .tf-gasto-editing{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:12.5px; color:var(--cold); font-family:inherit; }
+  .tf-gasto-editing button{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:12.5px; font-family:inherit; padding:0; text-decoration:underline; }
+  .tf-gasto-editing button:hover{ color:var(--text); }
   .tf-popover-total{ display:flex; justify-content:space-between; font-size:14.5px; font-weight:600; padding:12px 0 6px; }
   .tf-additem{ display:flex; gap:8px; margin-top:12px; }
   .tf-additem input[type=text]{
@@ -1152,11 +1158,15 @@
       <span>Total do dia</span>
       <span id="tf-gasto-total"></span>
     </div>
+    <div class="tf-gasto-editing" id="tf-gasto-editing" hidden>
+      <span>Editando item</span>
+      <button type="button" id="tf-gasto-edit-cancel">Cancelar edição</button>
+    </div>
     <form class="tf-additem" id="tf-gasto-form">
       <input type="text" id="tf-gasto-desc" placeholder="Descrição (opcional)">
       <input type="text" inputmode="decimal" id="tf-gasto-valor" placeholder="Valor" style="max-width:64px;">
       <select id="tf-gasto-categoria"></select>
-      <button type="submit">+</button>
+      <button type="submit" id="tf-gasto-submit" aria-label="Adicionar item">+</button>
     </form>
   </div>
 </div>
@@ -1279,6 +1289,22 @@
     } catch(e){
       console.error('Falha ao adicionar item de gasto', e);
       showToast('Falha ao adicionar item — verifique sua conexão', 'err');
+    }
+  }
+
+  async function updateTransactionItem(id, valor, categoria, descricao){
+    const fields = { valor, categoria, descricao: descricao || null };
+    try{
+      const { data, error } = await supabase.from('transactions').update(fields).eq('id', id).select().single();
+      if (error) throw error;
+      const idx = txState.items.findIndex(it => it.id === id);
+      if (idx >= 0) txState.items[idx] = { ...data, valor: Number(data.valor) };
+      reindexTransactions();
+      return true;
+    } catch(e){
+      console.error('Falha ao editar item de gasto', e);
+      showToast('Falha ao salvar a edição — verifique sua conexão', 'err');
+      return false;
     }
   }
 
@@ -1428,6 +1454,20 @@
     CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('');
 
   let gastoModalTarget = null; // { y, m, d, tipo }
+  // id do item sendo editado; null = formulário de baixo em modo "adicionar". A edição reaproveita
+  // o mesmo formulário (em vez de campos inline em cada linha) pra não duplicar a validação de valor.
+  let gastoEditingId = null;
+
+  function setGastoEditing(item){
+    gastoEditingId = item ? item.id : null;
+    document.getElementById('tf-gasto-desc').value = item ? (item.descricao || '') : '';
+    document.getElementById('tf-gasto-valor').value = item ? String(item.valor).replace('.', ',') : '';
+    if (item) document.getElementById('tf-gasto-categoria').value = item.categoria;
+    const btn = document.getElementById('tf-gasto-submit');
+    btn.textContent = item ? '✓' : '+';
+    btn.setAttribute('aria-label', item ? 'Salvar edição' : 'Adicionar item');
+    document.getElementById('tf-gasto-editing').hidden = !item;
+  }
 
   function renderGastoModalBody(){
     if (!gastoModalTarget) return;
@@ -1436,16 +1476,27 @@
     const total = items.reduce((s, it) => s + it.valor, 0);
     document.getElementById('tf-gasto-items').innerHTML = items.length
       ? items.map(it => `
-        <div class="tf-item-row">
+        <div class="tf-item-row${it.id === gastoEditingId ? ' tf-editing' : ''}">
           <span class="tf-item-dot" style="background:${categoryById(it.categoria).color}"></span>
           <span class="tf-item-desc">${(it.descricao || categoryById(it.categoria).label).replace(/</g,'&lt;')}<small>${categoryById(it.categoria).label}</small></span>
           <span class="tf-item-valor">${fmtBRL(it.valor)}</span>
-          <button class="tf-item-remove" data-remove-item="${it.id}">✕</button>
+          <button class="tf-item-edit" data-edit-item="${it.id}" aria-label="Editar item" title="Editar">✎</button>
+          <button class="tf-item-remove" data-remove-item="${it.id}" aria-label="Excluir item" title="Excluir">✕</button>
         </div>`).join('')
       : `<div class="tf-hint" style="padding:8px 0;">Nenhum item ainda — adicione abaixo.</div>`;
     document.getElementById('tf-gasto-total').textContent = fmtBRL(total);
+    document.getElementById('tf-gasto-items').querySelectorAll('[data-edit-item]').forEach(btn => {
+      btn.onclick = () => {
+        const item = items.find(it => it.id === btn.dataset.editItem);
+        if (!item) return;
+        setGastoEditing(item);
+        renderGastoModalBody();
+        document.getElementById('tf-gasto-valor').focus();
+      };
+    });
     document.getElementById('tf-gasto-items').querySelectorAll('[data-remove-item]').forEach(btn => {
       btn.onclick = async () => {
+        if (btn.dataset.removeItem === gastoEditingId) setGastoEditing(null);
         await removeTransactionItem(btn.dataset.removeItem);
         renderGastoModalBody();
         render();
@@ -1457,8 +1508,7 @@
     gastoModalTarget = { y, m, d, tipo };
     const label = tipo === 'diario' ? 'Gastos' : 'Saídas';
     document.getElementById('tf-gasto-modal-title').textContent = `${label} de ${d} de ${MONTH_NAMES[m]}`;
-    document.getElementById('tf-gasto-desc').value = '';
-    document.getElementById('tf-gasto-valor').value = '';
+    setGastoEditing(null);
     renderGastoModalBody();
     document.getElementById('tf-gasto-modal').classList.add('open');
     setTimeout(() => document.getElementById('tf-gasto-desc').focus(), 50);
@@ -1466,8 +1516,19 @@
 
   function closeGastoModal(){
     gastoModalTarget = null;
+    gastoEditingId = null;
     document.getElementById('tf-gasto-modal').classList.remove('open');
   }
+
+  function cancelGastoEdit(){
+    setGastoEditing(null);
+    renderGastoModalBody();
+    document.getElementById('tf-gasto-desc').focus();
+  }
+  document.getElementById('tf-gasto-edit-cancel').onclick = cancelGastoEdit;
+  document.getElementById('tf-gasto-form').addEventListener('keydown', e => {
+    if (e.key === 'Escape' && gastoEditingId){ e.stopPropagation(); cancelGastoEdit(); }
+  });
 
   document.getElementById('tf-gasto-modal-close').onclick = closeGastoModal;
   document.getElementById('tf-gasto-modal').addEventListener('click', e => {
@@ -1485,9 +1546,15 @@
     const { y, m, d, tipo } = gastoModalTarget;
     const descricao = document.getElementById('tf-gasto-desc').value.trim();
     const categoria = document.getElementById('tf-gasto-categoria').value;
-    await addTransactionItem(y, m, d, tipo, valor, categoria, descricao);
-    document.getElementById('tf-gasto-desc').value = '';
-    document.getElementById('tf-gasto-valor').value = '';
+    if (gastoEditingId){
+      const ok = await updateTransactionItem(gastoEditingId, valor, categoria, descricao);
+      if (!ok) return; // mantém o formulário preenchido pra tentar de novo
+      setGastoEditing(null);
+    } else {
+      await addTransactionItem(y, m, d, tipo, valor, categoria, descricao);
+      document.getElementById('tf-gasto-desc').value = '';
+      document.getElementById('tf-gasto-valor').value = '';
+    }
     renderGastoModalBody();
     render();
     document.getElementById('tf-gasto-desc').focus();
